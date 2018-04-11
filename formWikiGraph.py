@@ -2,7 +2,7 @@ import requests
 import pickle
 
 WIKI_GRAPH = {}
-WIKI_TITLES = "../data/english-wiki-titles"
+WIKI_TITLES = "data/english-wiki-titles"
 WIKI_LINKS_URL = "https://en.wikipedia.org/w/api.php?action=query&prop=links&pllimit=max&format=json&redirects=true&titles="
 
 def formWikiGraphFromTitles():
@@ -28,10 +28,9 @@ def getLinks(title):
             pageid = list(data["query"]["pages"])[0]
             links_as_dictlist = data["query"]["pages"][pageid]["links"]
             for d in links_as_dictlist:
-                links.append(d['title'])
+                links.append(d['title'].replace(' ', '_'))
         except:
             print(title, ' -- failed to load data -- ', data)
-    for l in links:
     return links
 
 def addLinksToGraph():
@@ -39,6 +38,9 @@ def addLinksToGraph():
         WIKI_GRAPH[key] = getLinks(key)
 
 # By representing each page as a 24 bit vector (2^24 is about 17M) I can create encodings for the titles
+
+def getGraph():
+    return WIKI_GRAPH
 
 
 if __name__ == "__main__":
