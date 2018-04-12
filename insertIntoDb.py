@@ -4,12 +4,12 @@ import sqlalchemy as db
 
 import formWikiGraph as make_graph
 
-engine = db.create_engine('sqlite:///:memory:', echo=True)
+engine = db.create_engine('postgres://vis:wikivis@130.64.128.179:5432')
 metadata = db.MetaData(engine)
 
 articles = db.Table('articles', metadata,
                     db.Column('id', db.Integer, db.Sequence('articles_id_seq'), primary_key=True),
-                    db.Column('name', db.String(256), nullable=False))
+                    db.Column('name', db.String(256), nullable=False, unique=True))
 
 links = db.Table('hierarchy_links', metadata,
                  db.Column('id', db.Integer, db.Sequence('hierarchy_links_id_seq'), primary_key=True),
@@ -20,7 +20,6 @@ links = db.Table('hierarchy_links', metadata,
 metadata.create_all( engine )
 
 make_graph.formWikiGraphFromTitles()
-make_graph.addLinksToGraph()
 
 articles_ins = articles.insert()
 links_ins = links.insert()
@@ -28,8 +27,9 @@ links_ins = links.insert()
 conn = engine.connect()
 
 for aname in make_graph.WIKI_GRAPH:
-    print( "Adding " + aname )
     conn.execute( articles_ins, name=aname )
+
+make_graph.addLinksToGraph()
 
 for aname in make_graph.WIKI_GRAPH:
     if len(make_graph.WIKI_GRAPH[aname]) > 0:
