@@ -43,7 +43,6 @@ def get_clickstream_links(aname):
 
     for l in leaves:
         leaf = Article.query.filter_by(id=l.id).first()
-        print( leaf )
         links.append({'name': leaf.name, 'num_refs': l.num_refs})
 
     return jsonify(links)

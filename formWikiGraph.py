@@ -6,8 +6,12 @@ WIKI_TITLES = "data/english-wiki-titles"
 WIKI_LINKS_URL = "https://en.wikipedia.org/w/api.php?action=query&prop=links&pllimit=max&format=json&redirects=true&titles="
 
 def formWikiGraphFromTitles():
+    char = ""
     with open(WIKI_TITLES, 'r') as f:
         for title in f.readlines():
+            if title[0] != char:
+                print( "Adding articles beginning with " + title[0] )
+                char = title[0]
             title = title[:-1]
             WIKI_GRAPH[title] = []
 #    with open("data/wiki-graph.pickle", "wb") as fp:
@@ -23,19 +27,26 @@ def getLinks(title):
     try:
         redirects = data["query"]["redirects"]
     except:
-        print(title, " - does not redirect to a different page")
         try:
             pageid = list(data["query"]["pages"])[0]
             links_as_dictlist = data["query"]["pages"][pageid]["links"]
             for d in links_as_dictlist:
                 links.append(d['title'].replace(' ', '_'))
         except:
-            print(title, ' -- failed to load data -- ', data)
+            pass
+#            print(title, ' -- failed to load data -- ', data)
     return links
 
-def addLinksToGraph():
-    for key in WIKI_GRAPH.keys():
-        WIKI_GRAPH[key] = getLinks(key)
+def addLinksToGraph( graph, counterlim ):
+    counter = 0
+    char = ""
+    for key in graph.keys():
+        if key[0] != char:
+            char = key[0]
+        graph[key] = getLinks(key)
+        counter += 1
+        if counter % 500 == 0:
+            print( "      Fetched %i of %i article links" % (counter, counterlim))
 
 # By representing each page as a 24 bit vector (2^24 is about 17M) I can create encodings for the titles
 

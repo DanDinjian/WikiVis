@@ -8,3 +8,19 @@ To change the database insertIntoDb.py references, update the first parameter of
 The current database is hosted at: "postgres://vis:wikivis@130.64.128.179:5432"
 Username: "vis"
 Password: "wikivis"
+
+Three API paths:
+'/api/hierarchy/<aname>'
+    -- Gets Wikipedia's official list of related links for a given article
+    -- aname: name of the desired Wikipedia article
+    -- Returns a list of {'name': <article name>} objects
+
+'/api/clickstream/from/<aname>'
+    -- Gets a list of all articles FROM which users traversed TO the given article
+    -- aname: name of the desired "destination" Wikipedia article
+    -- Returns a list of {'name': <article name>, 'num_refs': <number of times users followed this path>} objects
+
+'/api/clickstream/to<aname>'
+    -- Gets a list of all articles TO which users traversed FROM the given article
+    -- aname: name of the desired "source" Wikipedia article
+    -- Returns the same data type as the "from" path
