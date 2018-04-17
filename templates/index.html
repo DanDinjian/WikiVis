@@ -1,6 +1,37 @@
 {% extends "base.html" %}
+{% load staticfiles %}
 {% block content %}
+<head>
+  <title>WikiViz</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="wiki-viz.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+	<div class="row">
+			<div class="col-md-2"> </div>
+			<div class="col-md-8" id="stu"> </div>
+				<div class="container-fluid">
+				  <h1 id="title">Wikipedia Clicks & Hierarchies</h1>  
 
-<h1>Welcome to our Wikipedia Visualization!</h1>
+				  <p>On Sunday, April 8, Foster and Class of 2021 Representatives Grant Gebetsberger, Mateo Gomez and Sarah Wiener presented their resolution, titled “A Resolution Urging Tufts to Maintain its Current Level of Affordability,” to TCU Senate. The resolution asks that Senate propose to the administration that tuition increase rates match, and do not exceed, the rate of inflation, “meaning the actual cost to students maintains its current level of affordability relative to the affordability of other goods and services.” The resolution passed unanimously, according to Foster. Foster said TCU Senate will now propose the resolution to the administration and the Board of Trustees, but he expressed uncertainty as to whether they will accept it.</p> 
+				  <form action="/action_page.php">
+				  <div class="form-group">
+				    	<label for="wikipage">To get started, enter the name of a Wikipedia page:</label>
+				    	<input type="search" class="form-control" id="wikipage">
+				  </div>
+				  <button type="submit" class="btn btn-default">Search</button>
+				</form>      
+				<br>
+				 <p>Link to tutorial coming soon...</p> 
+
+				</div>
+			</div>
+		</div>
+
+</body>
 
 {% endblock %}
