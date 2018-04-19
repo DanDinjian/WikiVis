@@ -4,6 +4,7 @@ click==6.7
 django-autocomplete-light==3.2.10
 Flask==0.12.2
 Flask-SQLAlchemy==2.3.2
+gunicorn==19.7.1
 idna==2.6
 itsdangerous==0.24
 Jinja2==2.10
