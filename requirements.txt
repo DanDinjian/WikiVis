@@ -1,12 +1,4 @@
-<<<<<<< HEAD
-Flask==0.10.1
-Jinja2==2.7.2
-MarkupSafe==0.23
-Werkzeug==0.9.4
-gunicorn==19.0.0
-itsdangerous==0.24
 WTForms==2.1
-=======
 certifi==2018.4.16
 chardet==3.0.4
 click==6.7
@@ -29,4 +21,3 @@ virtualenv==15.2.0
 virtualenv-clone==0.3.0
 virtualenvwrapper==4.8.2
 Werkzeug==0.14.1
->>>>>>> 644a17ceb521e9bed8174105df76380bf9be44ff
