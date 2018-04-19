@@ -27,7 +27,11 @@ def setup():
 def home():
     return render_template("index.html")
 
-@app.route('/wikiviz', methods=['GET', 'POST'])
+@app.route('/wikiviz')
+def wikivizpage():
+    return render_template("wikiviz.html")
+
+@app.route('/wikiviz_w_data', methods=['GET', 'POST'])
 def view_vis():
     form = ReusableForm(request.form)
     print(form.errors)
@@ -43,7 +47,7 @@ def view_vis():
             flash('You searched for ' + article)
         else:
             flash('All the form fields are required. ')
-    return render_template("wikiviz.html", results=results, form=form)
+    return render_template("wikiviz_w_data.html", results=results, form=form)
 
 @app.route('/api/hierarchy/<string:name>', methods=['GET'])
 def hierarchy_api(name):
