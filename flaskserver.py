@@ -26,13 +26,21 @@ def view_vis():
 @app.route('/api/hierarchy/<string:name>', methods=['GET'])
 def get_hierarchy_links(name):
     links = []
-    url = WIKI_LINKS_URL + name
-    data = requests.get(url).json()
-    if 'query' in data and not 'redirects' in data['query']:
-        pageid = list(data['query']['pages'])[0]
-        links_as_dictlist = data['query']['pages'][pageid]['links']
-        for d in links_as_dictlist:
-            links.append({'name': d['title'].replace(' ', '_')} )
+    suffix = ""
+    while True:
+        url = WIKI_LINKS_URL + name + suffix
+        data = requests.get(url).json()
+        with open("output.txt", 'w') as fp:
+            fp.write( str(data) )
+        if 'query' in data and not 'redirects' in data['query']:
+            pageid = list(data['query']['pages'])[0]
+            links_as_dictlist = data['query']['pages'][pageid]['links']
+            for d in links_as_dictlist:
+                links.append({'name': d['title'].replace(' ', '_')} )
+        if 'continue' in data:
+            suffix = "&plcontinue=" + data['continue']['plcontinue']
+        else:
+            break
     return jsonify(links)
 
 @app.route('/api/clickstream/to/<string:aname>', methods=['GET'])
