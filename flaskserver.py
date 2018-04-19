@@ -1,15 +1,23 @@
 from flask import *
+from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField
 from flask_sqlalchemy import SQLAlchemy
 import requests
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = 'postgres://vis:wikivis@130.64.128.179:5432'
+app.config['SECRET_KEY'] = '7d441f27d441f27567d441f2b6176a'
+
+SERVER_NAME = "http://127.0.0.1:5000/"
 
 db = SQLAlchemy(app)
 
 WIKI_LINKS_URL = "https://en.wikipedia.org/w/api.php?action=query&prop=links&pllimit=max&format=json&redirects=true&titles="
 
 from models import *
+
+class ReusableForm(Form):
+    article = TextField('Search:', validators=[validators.required()], render_kw={"placeholder": "article name"})
+
 
 @app.before_first_request
 def setup():
@@ -19,11 +27,28 @@ def setup():
 def home():
     return render_template("index.html")
 
-@app.route('/wikiviz')
+@app.route('/wikiviz', methods=['GET', 'POST'])
 def view_vis():
-    return render_template("wikiviz.html")
+    form = ReusableForm(request.form)
+    print(form.errors)
+    results = []
+    if request.method == 'POST':
+        article=request.form['article']
+        results = get_hierarchy_links(article)
+
+        print(article)
+ 
+        if form.validate():
+            # Save the comment here.
+            flash('You searched for ' + article)
+        else:
+            flash('All the form fields are required. ')
+    return render_template("wikiviz.html", results=results, form=form)
 
 @app.route('/api/hierarchy/<string:name>', methods=['GET'])
+def hierarchy_api(name):
+    return jsonify(get_hierarchy_links(name))
+
 def get_hierarchy_links(name):
     links = []
     url = WIKI_LINKS_URL + name
@@ -33,7 +58,7 @@ def get_hierarchy_links(name):
         links_as_dictlist = data['query']['pages'][pageid]['links']
         for d in links_as_dictlist:
             links.append({'name': d['title'].replace(' ', '_')} )
-    return jsonify(links)
+    return links
 
 @app.route('/api/clickstream/to/<string:aname>', methods=['GET'])
 def get_clickstream_links(aname):

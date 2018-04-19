@@ -2,6 +2,44 @@
 {% block content %}
 
 <h1>Welcome to our Wikipedia Visualization!</h1>
+<br>
+<br>
+
+<input type="text" placeholder="Search..">
+
+<br>
+<br>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                        <li>{{ message[1] }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        <form action="" method="post">
+            {{ form.csrf }}
+ 
+            <div class="input text">
+                {{ form.article.label }} {{ form.article }}
+            </div>
+ 
+            <div class="input submit">
+                <input type="submit" value="Submit" />
+            </div>
+        </form>
+
+
+<br>
+<br>
+<h3>Results:</h3>
+{% for result in results %}
+  <strong>Article:</strong> {{ result[name] }} <br>
+  <strong>Info:</strong> {{ result }} <br>
+<br>
+{% endfor %}
 
 
 {% endblock %}
