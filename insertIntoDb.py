@@ -5,7 +5,7 @@ import sqlalchemy as db
 
 import formWikiGraph as make_graph
 
-engine = db.create_engine('postgres://vis:wikivis@192.168.10.105:5432')
+engine = db.create_engine('postgres://vis:wikivis@192.168.10.101:5432')
 metadata = db.MetaData(engine)
 
 articles = db.Table('articles', metadata,
@@ -22,6 +22,7 @@ metadata.create_all( engine )
 
 conn = engine.connect()
 
+"""
 print( "Creating graph" )
 make_graph.formWikiGraphFromTitles()
 
@@ -45,7 +46,7 @@ for a in make_graph.WIKI_GRAPH.keys():
         conn.execute( articles_ins, aqueue )
         aqueue = []
 
-"""
+
 print ("Getting list of first chars")
 for k in make_graph.WIKI_GRAPH.keys():
     if k[0] in broken_graph:
@@ -71,7 +72,7 @@ for filename in os.listdir('data/'):
         print( "Opened file with %i entries" % (filelen))
         with open('data/' + filename) as tsv:
             for line in csv.reader( tsv, dialect='excel-tab' ):
-                if (not line[2] == 'external') and (not line[0].startswith('other-')) and (not line[1].startswith('other-')):
+                if (not line[2] == 'external') and (not line[0].startswith('other-')) and (not line[1].startswith('other-') and bcounter > 20928500):
                     get_from = db.select([articles]).where(articles.c.name == line[0])
                     result = conn.execute( get_from )
                     fromval = result.first()

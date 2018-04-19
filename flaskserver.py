@@ -35,28 +35,25 @@ def get_hierarchy_links(name):
             links.append({'name': d['title'].replace(' ', '_')} )
     return jsonify(links)
 
-@app.route('/api/clickstream/from/<string:aname>', methods=['GET'])
+@app.route('/api/clickstream/to/<string:aname>', methods=['GET'])
 def get_clickstream_links(aname):
     links = []
-    root = Article.query.filter_by(name=aname).first()
-    leaves = ClickstreamLink.query.filter_by(link_to=root.id)
-
+    subq = db.session.query(ClickstreamLink.link_from, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_to, Article.name == aname)).subquery('subq')
+    leaves = db.session.query(Article.name, subq.c.num_refs).join(subq, subq.c.link_from == Article.id)
+    
     for l in leaves:
-        leaf = Article.query.filter_by(id=l.id).first()
-        print( leaf )
-        links.append({'name': leaf.name, 'num_refs': l.num_refs})
-
+        links.append({'name': l[0], 'num_refs': l[1]})
+    
     return jsonify(links)
 
-@app.route('/api/clickstream/to/<string:aname>', methods=['GET'])
+@app.route('/api/clickstream/from/<string:aname>', methods=['GET'])
 def get_clickstream_to(aname):
     links = []
-    root = Article.query.filter_by(name=aname).first()
-    sources = ClickstreamLink.query.filter_by(link_from=root.id)
-
+    subq = db.session.query(ClickstreamLink.link_to, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_from, Article.name == aname)).subquery('subq')
+    sources = db.session.query(Article.name, subq.c.num_refs).join(subq, subq.c.link_to == Article.id)
+    
     for s in sources:
-        source = Article.query.filter_by(id=s.id).first()
-        links.append({'name': source.name, 'num_refs': s.num_refs })
+        links.append({'name': s[0], 'num_refs': s[1]})
 
     return jsonify(links)
 
