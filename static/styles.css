@@ -47,8 +47,8 @@ path.link {
 }
 
 .submit-btn {
-	border-radius: 5px; 
+	border-radius: 2px; 
 	background-color: white; 
 	border: 1px solid black; 
-	padding:2% 4%;
+	padding:1% 4%;
 }

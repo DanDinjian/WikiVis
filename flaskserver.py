@@ -28,11 +28,13 @@ def setup():
 
 @app.route('/')
 def home():
-    return render_template("index.html")
+    form = ReusableForm(request.form)
+    return render_template("index.html", form=form)
 
 @app.route('/wikiviz')
 def wikivizpage():
-    return render_template("wikiviz.html")
+    form = ReusableForm(request.form)
+    return render_template("wikiviz.html", form=form)
 
 @app.route('/wikiviz_w_data', methods=['GET', 'POST'])
 def view_vis():

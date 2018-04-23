@@ -8,8 +8,32 @@
 {{super()}}
 <script lang="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.js"></script>
 <script lang="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/jquery-ui.min.js"></script>
 
 <script> 
+
+	$(document).ready(function(){
+    $("#article").autocomplete({
+        source: function(request, response) {
+            $.ajax({
+                url: "http://en.wikipedia.org/w/api.php",
+                dataType: "jsonp",
+                data: {
+                    'action': "opensearch",
+                    'format': "json",
+                    'search': request.term
+                },
+                success: function(data) {
+                    response(data[1]);
+                }
+            });
+        }
+    });
+
+    });
+
+
 	var margin = {top: 20, right: 20, bottom: 20, left: 10},
 	      width = 900 - margin.left - margin.right,
 	      halfWidth = width / 2,
@@ -17,7 +41,7 @@
 	      i = 0,
 	      duration = 500,
 	      root;
-	      
+
 	$("#option13").on("click", function() {
 	$("#svgclick").empty();
 	});
@@ -200,10 +224,13 @@
     		<input type="radio" name="options" id="option2" autocomplete="off"> Hierarchy
   		</label>
 	</div>
-		<form action="/action_page.php">
+		<form action="/wikiviz" method="post">
 			<div class="form-group1">
-				<input type="search" placeholder="search another page" class="form-control" id="wikipage">
-		
+            	{{ form.csrf }}
+
+				<!-- <div type="search" placeholder="search another page" class="form-control" id="wikipage"> -->
+					{{ form.article }}
+				<!-- </div> -->
 				<button type="submit" class="btn btn-default">Search</button>
 			</div>
 		</form>    

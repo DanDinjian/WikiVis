@@ -4,6 +4,37 @@
 	<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 {% endblock %}
 
+{% block scripts %}
+{{ super() }}
+<head>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+    $(document).ready(function(){
+    $("#article").autocomplete({
+        source: function(request, response) {
+            $.ajax({
+                url: "http://en.wikipedia.org/w/api.php",
+                dataType: "jsonp",
+                data: {
+                    'action': "opensearch",
+                    'format': "json",
+                    'search': request.term
+                },
+                success: function(data) {
+                    response(data[1]);
+                }
+            });
+        }
+    });
+
+    });
+
+</script>
+    
+{% endblock %} 
 
 {% block content %}
 <div class="container">
@@ -19,9 +50,15 @@
 				</div>
 				<div>
 					<div style="width:60%; margin: 0 auto;">
-		  					<form class="form-inline" action="/wikiviz" >
-		    						<input type="text" class="search-bar" id="wikipage" style="font-size: 120%;">  </input>
-		    						<input type="submit" class="submit-btn" id="wikipage" style="font-size: 120%;"> 
+		  					<form class="form-inline" action="/wikiviz" method="post">
+            					{{ form.csrf }}
+
+		    						<div type="search" class="search-bar" id="wikipage" style="font-size: 120%;">
+		    							{{ form.article }}
+									<button type="submit" class="btn btn-default">Search</button>
+
+		    							<!-- <input type="submit" class="submit-btn" label="Search" id="wikipage" style="font-size: 100%;">  -->
+		    						</div>
 							</form>
 						</div>      
 						<div>
