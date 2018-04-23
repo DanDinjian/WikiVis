@@ -39,7 +39,7 @@ def view_vis():
     if request.method == 'POST':
         article=request.form['article']
         results = get_hierarchy_links(article)
-
+        print(results)
         print(article)
  
         if form.validate():
@@ -70,7 +70,7 @@ def get_hierarchy_links(name):
             suffix = "&plcontinue=" + data['continue']['plcontinue']
         else:
             break
-    return jsonify(links)
+    return links
 
 @app.route('/api/clickstream/to/<string:aname>', methods=['GET'])
 def get_clickstream_links(aname):
