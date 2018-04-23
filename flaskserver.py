@@ -2,10 +2,13 @@ from flask import *
 from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField
 from flask_sqlalchemy import SQLAlchemy
 import requests
+from flask_bootstrap import Bootstrap
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = 'postgres://vis:wikivis@130.64.128.179:5432'
 app.config['SECRET_KEY'] = '7d441f27d441f27567d441f2b6176a'
+
+Bootstrap(app)
 
 SERVER_NAME = "http://127.0.0.1:5000/"
 

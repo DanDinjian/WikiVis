@@ -1,0 +1,54 @@
+#title {
+	color: black;
+	font-weight: bold;
+	text-align: left;
+}
+
+#title1 {
+	color: black;
+	font-weight: bold;
+	text-align: center;
+}
+.form-group {
+	width: 50%;
+}
+
+.form-group1 {
+	width: 20%;
+	margin-left: 78%;
+}
+
+header{
+	font-weight: bold;
+	text-align: center;
+	font-size: 35px;
+}
+
+.btn-group {
+	width: 15%;
+	border-radius: 8px;
+	display: inline;
+}
+
+.node circle {
+    cursor: pointer;
+    fill: #fff;
+    stroke: steelblue;
+    stroke-width: 1.5px;
+}
+ .node text {
+    font: 10px sans-serif;
+ }
+path.link {
+	fill: none;
+	stroke: black;
+	stroke-width: 1.5px;
+
+}
+
+.submit-btn {
+	border-radius: 5px; 
+	background-color: white; 
+	border: 1px solid black; 
+	padding:2% 4%;
+}
