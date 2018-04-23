@@ -39,8 +39,6 @@ def view_vis():
     if request.method == 'POST':
         article=request.form['article']
         results = get_hierarchy_links(article)
-        print(results)
-        print(article)
  
         if form.validate():
             # Save the comment here.
