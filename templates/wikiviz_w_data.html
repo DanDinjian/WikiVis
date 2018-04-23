@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
+{% block scripts %}
+{{ super() }}
 <head>
     
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,8 +28,10 @@
     });
 
     });
+
 </script>
     
+{% endblock %}    
 </head>
 
 <br>
@@ -63,7 +67,7 @@
 <br>
 <h3>Results:</h3>
 {% for result in results %}
-  <strong>Article:</strong> {{ result[name] }} <br>
+  <strong>Article:</strong> {{ result['name'] }} <br>
   <strong>Info:</strong> {{ result }} <br>
 <br>
 {% endfor %}

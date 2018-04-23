@@ -41,7 +41,7 @@ def view_vis():
     results = []
     if request.method == 'POST':
         article=request.form['article']
-        results = get_hierarchy_links(article)
+        results = get_clickstream_to(article)
  
         if form.validate():
             # Save the comment here.
@@ -82,7 +82,7 @@ def get_clickstream_links(aname):
     for l in leaves:
         links.append({'name': l[0], 'num_refs': l[1]})
     
-    return jsonify(links)
+    return links
 
 @app.route('/api/clickstream/from/<string:aname>', methods=['GET'])
 def get_clickstream_to(aname):
@@ -93,7 +93,7 @@ def get_clickstream_to(aname):
     for s in sources:
         links.append({'name': s[0], 'num_refs': s[1]})
 
-    return jsonify(links)
+    return links
 
 if __name__ == '__main__':
     app.run(debug=True)
