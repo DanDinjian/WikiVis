@@ -26,15 +26,43 @@ class ReusableForm(Form):
 def setup():
     db.reflect()
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def home():
     form = ReusableForm(request.form)
-    return render_template("index.html", form=form)
+    print(form.errors)
+    results = []
+    if request.method == 'POST':
+        article=request.form['article']
+        #results_to = get_clickstream_to(article)
+        results_from = get_clickstream_links(article)
+        if form.validate():
+            # Save the comment here.
+            flash('You searched for ' + article)
+        else:
+            flash('All the form fields are required. ')
+        return render_template("wikiviz.html", form=form, results=results_from)
 
-@app.route('/wikiviz')
+    else:
+        return render_template("index.html", form=form)
+
+@app.route('/wikiviz', methods=['GET', 'POST'])
 def wikivizpage():
     form = ReusableForm(request.form)
-    return render_template("wikiviz.html", form=form)
+    print(form.errors)
+    results = []
+    if request.method == 'POST':
+        article=request.form['article']
+        results_to = get_clickstream_to(article)
+        results_from = get_clickstream_links(article)
+        if form.validate():
+            # Save the comment here.
+            flash('You searched for ' + article)
+        else:
+            flash('All the form fields are required. ')
+        return render_template("wikiviz.html", results1=results_to, results2=results_from, form=form, article=article)
+    else:
+        return render_template("wikiviz.html", form=form, results1=[], results2=[])
+    # return render_template("wikiviz.html", form=form)
 
 @app.route('/wikiviz_w_data', methods=['GET', 'POST'])
 def view_vis():

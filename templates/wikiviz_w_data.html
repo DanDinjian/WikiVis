@@ -28,7 +28,16 @@
     });
 
     });
+    var count = 0
+    {% for result in results %}
+        count++;
+        console.log('{{ result['num_refs']}}')
+    {% endfor %}
+    var res = '{{ results | tojson}}'
+    var t = JSON.parse(res)
 
+    console.log(res[0])
+    console.log( {{ results['Lithic_reduction'] }})
 </script>
     
 {% endblock %}    
@@ -67,7 +76,7 @@
 <br>
 <h3>Results:</h3>
 {% for result in results %}
-  <strong>Article:</strong> {{ result['name'] }} <br>
+  <strong>Article:</strong> {{ result['name']}} <br>
   <strong>Info:</strong> {{ result }} <br>
 <br>
 {% endfor %}
