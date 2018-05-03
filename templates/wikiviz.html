@@ -42,12 +42,19 @@
 	      duration = 500,
 	      root;
 
-	$("#option13").on("click", function() {
-	$("#svgclick").empty();
+	var clicked = true;
+	$("#option_hier").on("click", function() {
+		clicked = false;
+		d3.select("#svgclick").remove()
+	// $("#svgclick").empty();
 	});
 
-	$("#option12").on("click", function() {
-		console.log("YEAA")
+	//$("#option_click").on("click", function() {
+		//if ($("#svgclick").is(':empty')) {
+	// if(clicked == false){
+	// 	clicked = true;
+	// 	console.log("YEAA")
+
 	var getChildren = function(d){
 	    var a = [];
 	    if(d.winners) for(var i = 0; i < d.winners.length; i++){
@@ -163,6 +170,7 @@
 	//d3.json(jsonData, function(json) {
 	//jsonto(jsonData)
 	//function jsonto(json){
+
 	root = data;
 	root.x0 = height / 2;
 	root.y0 = width / 2;
@@ -265,7 +273,10 @@
 	update(source);
 		}
 	}
-	});
+	//}
+	
+	//});
+	//click_viz()
 	</script>
 {% endblock %}
 
@@ -273,10 +284,10 @@
 		
 <h1 id="title1">Wikipedia Clicks & Hierarchies</h1>
 	<div class="btn-group btn-group-toggle" data-toggle="buttons">
-  		<label class="btn btn-secondary active" id="option12">
+  		<label class="btn btn-secondary active" id="option_click">
     		<input type="radio" name="options" id="option1" autocomplete="off" checked> Clickstream
   		</label>
-  		<label class="btn btn-secondary" id="option13">
+  		<label class="btn btn-secondary" id="option_hier">
     		<input type="radio" name="options" id="option2" autocomplete="off"> Hierarchy
   		</label>
 	</div>
