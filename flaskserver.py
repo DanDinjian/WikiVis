@@ -113,13 +113,13 @@ def clickstream_to_api(aname):
 def get_clickstream_to(aname):
     aname = aname.replace(" ", "_")
     links = []
-    subq = db.session.query(ClickstreamLink.link_from, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_to, Article.name == aname)).subquery('subq')
+    subq = db.session.query(ClickstreamLink.link_from, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_to, db.func.lower(Article.name) == db.func.lower(aname))).subquery('subq')
     leaves = db.session.query(Article.name, subq.c.num_refs).join(subq, subq.c.link_from == Article.id)
     
     for l in leaves:
         links.append({'name': l[0], 'num_refs': l[1]})
     
-    return links
+    return jsonify(links)
 
 @app.route('/api/clickstream/from/<string:aname>', methods=['GET'])
 def clickstream_from_api(aname):
@@ -127,13 +127,13 @@ def clickstream_from_api(aname):
 
 def get_clickstream_from(aname):
     links = []
-    subq = db.session.query(ClickstreamLink.link_to, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_from, Article.name == aname)).subquery('subq')
+    subq = db.session.query(ClickstreamLink.link_to, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_from, db.func.lower(Article.name) == db.func.lower(aname))).subquery('subq')
     sources = db.session.query(Article.name, subq.c.num_refs).join(subq, subq.c.link_to == Article.id)
     
     for s in sources:
         links.append({'name': s[0], 'num_refs': s[1]})
 
-    return links
+    return jsonify(links)
 
 if __name__ == '__main__':
     app.run(debug=True)
