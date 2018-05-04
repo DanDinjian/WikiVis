@@ -34,7 +34,7 @@ def home():
     if request.method == 'POST':
         article=request.form['article']
         #results_to = get_clickstream_to(article)
-        results_from = get_clickstream_links(article)
+        results_from = get_clickstream_to(article)
         if form.validate():
             # Save the comment here.
             flash('You searched for ' + article)
@@ -52,8 +52,11 @@ def wikivizpage():
     results = []
     if request.method == 'POST':
         article=request.form['article']
+        print(article)
         results_to = get_clickstream_to(article)
-        results_from = get_clickstream_links(article)
+        print(results_to)
+        results_from = get_clickstream_from(article)
+        print(results_from)
         if form.validate():
             # Save the comment here.
             flash('You searched for ' + article)
@@ -104,7 +107,11 @@ def get_hierarchy_links(name):
     return links
 
 @app.route('/api/clickstream/to/<string:aname>', methods=['GET'])
-def get_clickstream_links(aname):
+def clickstream_to_api(aname):
+    return jsonify(get_clickstream_to(aname))
+
+def get_clickstream_to(aname):
+    aname = aname.replace(" ", "_")
     links = []
     subq = db.session.query(ClickstreamLink.link_from, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_to, Article.name == aname)).subquery('subq')
     leaves = db.session.query(Article.name, subq.c.num_refs).join(subq, subq.c.link_from == Article.id)
@@ -115,7 +122,10 @@ def get_clickstream_links(aname):
     return links
 
 @app.route('/api/clickstream/from/<string:aname>', methods=['GET'])
-def get_clickstream_to(aname):
+def clickstream_from_api(aname):
+    return jsonify(get_clickstream_from(aname))
+
+def get_clickstream_from(aname):
     links = []
     subq = db.session.query(ClickstreamLink.link_to, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_from, Article.name == aname)).subquery('subq')
     sources = db.session.query(Article.name, subq.c.num_refs).join(subq, subq.c.link_to == Article.id)
