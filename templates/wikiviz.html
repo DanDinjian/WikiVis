@@ -47,207 +47,6 @@
 
     });
 
-    var testdata_from = [
-  {
-    "name": "JavaScript",
-    "num_refs": 50
-  },
-  {
-    "name": "D3:_The_Mighty_Ducks",
-    "num_refs": 18
-  },
-  {
-    "name": "R_(programming_language)",
-    "num_refs": 72
-  },
-  {
-    "name": "OpenStreetMap",
-    "num_refs": 32
-  },
-  {
-    "name": "Prefuse",
-    "num_refs": 14
-  },
-  {
-    "name": "HTML5",
-    "num_refs": 23
-  },
-  {
-    "name": "Bates_distribution",
-    "num_refs": 14
-  },
-  {
-    "name": "Mike_Bostock",
-    "num_refs": 197
-  },
-  {
-    "name": "AnyChart",
-    "num_refs": 127
-  },
-  {
-    "name": "JSON",
-    "num_refs": 21
-  },
-  {
-    "name": "Data_visualization",
-    "num_refs": 104
-  },
-  {
-    "name": "JavaScript_library",
-    "num_refs": 19
-  },
-  {
-    "name": "SAS_(software)",
-    "num_refs": 33
-  },
-  {
-    "name": "Tableau_Software",
-    "num_refs": 96
-  },
-  {
-    "name": "Plotly",
-    "num_refs": 86
-  },
-  {
-    "name": "MATLAB",
-    "num_refs": 50
-  },
-  {
-    "name": "Main_Page",
-    "num_refs": 20
-  },
-  {
-    "name": "Qlik",
-    "num_refs": 65
-  },
-  {
-    "name": "Rapha\u00ebl_(JavaScript_library)",
-    "num_refs": 69
-  },
-  {
-    "name": "Cascading_Style_Sheets",
-    "num_refs": 14
-  },
-  {
-    "name": "Zoomdata",
-    "num_refs": 48
-  },
-  {
-    "name": "Protovis_himalayensis",
-    "num_refs": 15
-  },
-  {
-    "name": "Gnuplot",
-    "num_refs": 50
-  },
-  {
-    "name": "Matplotlib",
-    "num_refs": 57
-  },
-  {
-    "name": "Datacopia",
-    "num_refs": 50
-  },
-  {
-    "name": "Jeffrey_Heer",
-    "num_refs": 81
-  },
-  {
-    "name": "Document_Object_Model",
-    "num_refs": 11
-  },
-  {
-    "name": "Scalable_Vector_Graphics",
-    "num_refs": 188
-  },
-  {
-    "name": "Software_release_life_cycle",
-    "num_refs": 15
-  },
-  {
-    "name": "Processing_(programming_language)",
-    "num_refs": 39
-  },
-  {
-    "name": "Web_mapping",
-    "num_refs": 11
-  },
-  {
-    "name": "BSD_licenses",
-    "num_refs": 158
-  },
-  {
-    "name": "GeoJSON",
-    "num_refs": 49
-  }
-]
-
-    var testdata_to = [
-  {
-    "name": "Datadog",
-    "num_refs": 12
-  },
-  {
-    "name": "List_of_information_graphics_software",
-    "num_refs": 51
-  },
-  {
-    "name": "TypeScript",
-    "num_refs": 126
-  },
-  {
-    "name": "Comparison_of_JavaScript_charting_frameworks",
-    "num_refs": 115
-  },
-  {
-    "name": "Processing.js",
-    "num_refs": 47
-  },
-  {
-    "name": "OpenStreetMap",
-    "num_refs": 19
-  },
-  {
-    "name": "List_of_JavaScript_libraries",
-    "num_refs": 262
-  },
-  {
-    "name": "Mike_Bostock",
-    "num_refs": 29
-  },
-  {
-    "name": "Main_Page",
-    "num_refs": 17
-  },
-  {
-    "name": "Plotly",
-    "num_refs": 23
-  },
-  {
-    "name": "Business_intelligence_software",
-    "num_refs": 79
-  },
-  {
-    "name": "Data_visualization",
-    "num_refs": 14
-  },
-  {
-    "name": "List_of_charting_software",
-    "num_refs": 11
-  },
-  {
-    "name": "D3",
-    "num_refs": 123
-  },
-  {
-    "name": "List_of_reporting_software",
-    "num_refs": 244
-  },
-  {
-    "name": "SVG_animation",
-    "num_refs": 24
-  }
-]
     function get_weight(v) {
         return Math.log(v);
     }
@@ -266,59 +65,97 @@
 
     var master_links = master_nodes.map(x => ({"source": (x.group == 0) ? x.id : starticle, "target": (x.group == 0) ? starticle : x.id, "value": x.weight}));
 
-    //for (var i = 0; i < master_nodes.length; i++);
+    var promises_to = []
+    var promises_from = []
+    var url = "http://127.0.0.1:5000"
 
-    master_nodes.push({"id": starticle, "group": 1})
+    for (var i = 0; i < master_nodes.length; i++) {
+        promises_to.push({"promise": $.get( url + "/api/clickstream/to/" + master_nodes[i].id ), "name": master_nodes[i].id});
+    }
 
-    var mygraph = {};
-    mygraph.nodes = master_nodes;
-    mygraph.links = master_links;
+    function get_internal_links(jsondata, nodes, links, promises, is_to) {
+        for (var i = 0; i < jsondata.length; i++) {
+            var index = nodes.findIndex(x => x.id == jsondata[j].name)
+            if (index != -1) {
+                links.push({"source": (is_to) ? promises[i].name : jsondata[j].name, "target": (is_to) ? jsondata[j].name : promises[i].name, "value": get_weight(jsondata[j].num_refs)});
+            }
+        }
+    }
 
-    console.log(mygraph)
+    $.when.apply($, promises_to.map(x => x.promise)).done( function() {
+        for (var i = 0; i < arguments.length; i++) {
+            var jsondata = JSON.parse(arguments[i]);
+            get_internal_links(jsondata, master_nodes, links, promises_to, true)
+        }
 
-	var margin = {top: 20, right: 20, bottom: 20, left: 10},
-	      width = window.innerWidth - margin.left - margin.right,
-	      height = window.innerHeight - margin.top - margin.bottom;
+        for (var k = 0; k < master_nodes.length; k++) {
+            promises_from.push({"promise": $.get( url + "/api/clickstream/from" + master_nodes[i].id ), "name": master_nodes[i].id});
+        }
 
-	var svg = d3.select("#chart").append("svg")
-        .attr("width", width)
-        .attr("height", height);
+        $.when.apply($, promises_from.map(x => x.promise)).done( function () {
+            for (var i = 0; l < arguments.length; i++) {
+                var jsondata2 = JSON.parse(arguments[i]);
+                get_internal_links(jsondata2, master_nodes, links, promises_from, false);
+            }
 
-    var color = d3.scaleOrdinal(d3.schemeCategory20);
+            finish_doing_stuff();
+        })
+    });
 
-    var simulation = d3.forceSimulation()
-        .force("link", d3.forceLink().id(function(d) { return d.id; }))
-        .force("charge", d3.forceManyBody())
-        .force("center", d3.forceCenter(width / 2, height / 2));
+    function finish_doing_stuff()
+    {
+        master_nodes.push({"id": starticle, "group": 1})
 
-  var link = svg.append("g")
-      .attr("class", "links")
-    .selectAll("line")
-    .data(mygraph.links)
-    .enter().append("line")
-      .attr("stroke-width", function(d) { return (d.value); });
+        var mygraph = {};
+        mygraph.nodes = master_nodes;
+        mygraph.links = master_links;
 
-  var node = svg.append("g")
-      .attr("class", "nodes")
-    .selectAll("circle")
-    .data(mygraph.nodes)
-    .enter().append("circle")
-      .attr("r", 5)
-      .attr("fill", function(d) {return color(d.group)} )
-      .call(d3.drag()
-          .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended));
+        console.log(mygraph)
 
-  node.append("title")
-      .text(function(d) { return d.id; });
+    	var margin = {top: 20, right: 20, bottom: 20, left: 10},
+    	      width = window.innerWidth - margin.left - margin.right,
+    	      height = window.innerHeight - margin.top - margin.bottom;
 
-  simulation
-      .nodes(mygraph.nodes)
-      .on("tick", ticked);
+    	var svg = d3.select("#chart").append("svg")
+            .attr("width", width)
+            .attr("height", height);
 
-  simulation.force("link")
-      .links(mygraph.links);
+        var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+        var simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(function(d) { return d.id; }))
+            .force("charge", d3.forceManyBody())
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+      var link = svg.append("g")
+          .attr("class", "links")
+        .selectAll("line")
+        .data(mygraph.links)
+        .enter().append("line")
+          .attr("stroke-width", function(d) { return (d.value); });
+
+      var node = svg.append("g")
+          .attr("class", "nodes")
+        .selectAll("circle")
+        .data(mygraph.nodes)
+        .enter().append("circle")
+          .attr("r", 5)
+          .attr("fill", function(d) {return color(d.group)} )
+          .call(d3.drag()
+              .on("start", dragstarted)
+              .on("drag", dragged)
+              .on("end", dragended));
+
+      node.append("title")
+          .text(function(d) { return d.id; });
+
+      simulation
+          .nodes(mygraph.nodes)
+          .on("tick", ticked);
+
+      simulation.force("link")
+          .links(mygraph.links);
+    }
 
   function ticked() {
     link
