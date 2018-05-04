@@ -33,14 +33,14 @@ def home():
     results = []
     if request.method == 'POST':
         article=request.form['article']
-        #results_to = get_clickstream_to(article)
-        results_from = get_clickstream_links(article)
+        results_to = get_clickstream_to(article)
+        results_from = get_clickstream_from(article)
         if form.validate():
             # Save the comment here.
             flash('You searched for ' + article)
         else:
             flash('All the form fields are required. ')
-        return render_template("wikiviz.html", form=form, results=results_from)
+        return render_template("wikiviz.html", form=form, results_to=results_to, results_from=results_from)
 
     else:
         return render_template("index.html", form=form)
@@ -53,15 +53,15 @@ def wikivizpage():
     if request.method == 'POST':
         article=request.form['article']
         results_to = get_clickstream_to(article)
-        results_from = get_clickstream_links(article)
+        results_from = get_clickstream_from(article)
         if form.validate():
             # Save the comment here.
             flash('You searched for ' + article)
         else:
             flash('All the form fields are required. ')
-        return render_template("wikiviz.html", results1=results_to, results2=results_from, form=form, article=article)
+        return render_template("wikiviz.html", results_to=results_to, results_from=results_from, form=form, article=article)
     else:
-        return render_template("wikiviz.html", form=form, results1=[], results2=[])
+        return render_template("wikiviz.html", form=form, results_to=[], results_from=[])
     # return render_template("wikiviz.html", form=form)
 
 @app.route('/wikiviz_w_data', methods=['GET', 'POST'])
@@ -72,7 +72,7 @@ def view_vis():
     if request.method == 'POST':
         article=request.form['article']
         results = get_clickstream_to(article)
- 
+
         if form.validate():
             # Save the comment here.
             flash('You searched for ' + article)
@@ -104,26 +104,58 @@ def get_hierarchy_links(name):
     return links
 
 @app.route('/api/clickstream/to/<string:aname>', methods=['GET'])
-def get_clickstream_links(aname):
+def request_clickstream_to(aname):
+    return jsonify(get_clickstream_to(aname))
+
+def get_clickstream_to(aname):
+    links = []
+    marticle = Article.query.filter(db.func.lower(Article.name) == db.func.lower(aname)).first()
+    subq = ClickstreamLink.query.filter(ClickstreamLink.link_from == marticle.id).all()
+    for q in subq:
+        leaf = Article.query.filter(Article.id == q.link_to).first()
+
+        links.append({'name': leaf.name, 'num_refs': q.num_refs})
+
+    return links
+
+"""
+def get_clickstream_to_OLD(aname):
     links = []
     subq = db.session.query(ClickstreamLink.link_from, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_to, db.func.lower(Article.name) == db.func.lower(aname))).subquery('subq')
     leaves = db.session.query(Article.name, subq.c.num_refs).join(subq, subq.c.link_from == Article.id)
-    
+
     for l in leaves:
         links.append({'name': l[0], 'num_refs': l[1]})
-    
-    return jsonify(links)
+
+    return links
+"""
 
 @app.route('/api/clickstream/from/<string:aname>', methods=['GET'])
-def get_clickstream_to(aname):
+def request_clickstream_from(aname):
+    return jsonify(get_clickstream_from(aname))
+
+def get_clickstream_from(aname):
+    links = []
+    marticle = Article.query.filter(db.func.lower(Article.name) == db.func.lower(aname)).first()
+    subq = ClickstreamLink.query.filter(ClickstreamLink.link_to == marticle.id).all()
+    for q in subq:
+        leaf = Article.query.filter(Article.id == q.link_from).first()
+
+        links.append({'name': leaf.name, 'num_refs': q.num_refs})
+
+    return links
+
+"""
+def get_clickstream_from(aname):
     links = []
     subq = db.session.query(ClickstreamLink.link_to, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_from, db.func.lower(Article.name) == db.func.lower(aname))).subquery('subq')
     sources = db.session.query(Article.name, subq.c.num_refs).join(subq, subq.c.link_to == Article.id)
-    
+
     for s in sources:
         links.append({'name': s[0], 'num_refs': s[1]})
 
-    return jsonify(links)
+    return links
+"""
 
 if __name__ == '__main__':
     app.run(debug=True)

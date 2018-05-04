@@ -1,0 +1,66 @@
+[
+  {
+    "name": "Datadog", 
+    "num_refs": 12
+  }, 
+  {
+    "name": "List_of_information_graphics_software", 
+    "num_refs": 51
+  }, 
+  {
+    "name": "TypeScript", 
+    "num_refs": 126
+  }, 
+  {
+    "name": "Comparison_of_JavaScript_charting_frameworks", 
+    "num_refs": 115
+  }, 
+  {
+    "name": "Processing.js", 
+    "num_refs": 47
+  }, 
+  {
+    "name": "OpenStreetMap", 
+    "num_refs": 19
+  }, 
+  {
+    "name": "List_of_JavaScript_libraries", 
+    "num_refs": 262
+  }, 
+  {
+    "name": "Mike_Bostock", 
+    "num_refs": 29
+  }, 
+  {
+    "name": "Main_Page", 
+    "num_refs": 17
+  }, 
+  {
+    "name": "Plotly", 
+    "num_refs": 23
+  }, 
+  {
+    "name": "Business_intelligence_software", 
+    "num_refs": 79
+  }, 
+  {
+    "name": "Data_visualization", 
+    "num_refs": 14
+  }, 
+  {
+    "name": "List_of_charting_software", 
+    "num_refs": 11
+  }, 
+  {
+    "name": "D3", 
+    "num_refs": 123
+  }, 
+  {
+    "name": "List_of_reporting_software", 
+    "num_refs": 244
+  }, 
+  {
+    "name": "SVG_animation", 
+    "num_refs": 24
+  }
+]

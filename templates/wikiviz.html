@@ -6,12 +6,26 @@
 
 {% block scripts %}
 {{super()}}
-<script lang="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.js"></script>
-<script lang="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+
+<script lang="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.js"></script>
+<script lang="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/jquery-ui.min.js"></script>
 
-<script> 
+<style>
+.links line {
+  stroke: #555;
+  stroke-opacity: 0.6;
+}
+
+.nodes circle {
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+</style>
+
+<script>
 
 	$(document).ready(function(){
     $("#article").autocomplete({
@@ -33,255 +47,313 @@
 
     });
 
+    var testdata_from = [
+  {
+    "name": "JavaScript",
+    "num_refs": 50
+  },
+  {
+    "name": "D3:_The_Mighty_Ducks",
+    "num_refs": 18
+  },
+  {
+    "name": "R_(programming_language)",
+    "num_refs": 72
+  },
+  {
+    "name": "OpenStreetMap",
+    "num_refs": 32
+  },
+  {
+    "name": "Prefuse",
+    "num_refs": 14
+  },
+  {
+    "name": "HTML5",
+    "num_refs": 23
+  },
+  {
+    "name": "Bates_distribution",
+    "num_refs": 14
+  },
+  {
+    "name": "Mike_Bostock",
+    "num_refs": 197
+  },
+  {
+    "name": "AnyChart",
+    "num_refs": 127
+  },
+  {
+    "name": "JSON",
+    "num_refs": 21
+  },
+  {
+    "name": "Data_visualization",
+    "num_refs": 104
+  },
+  {
+    "name": "JavaScript_library",
+    "num_refs": 19
+  },
+  {
+    "name": "SAS_(software)",
+    "num_refs": 33
+  },
+  {
+    "name": "Tableau_Software",
+    "num_refs": 96
+  },
+  {
+    "name": "Plotly",
+    "num_refs": 86
+  },
+  {
+    "name": "MATLAB",
+    "num_refs": 50
+  },
+  {
+    "name": "Main_Page",
+    "num_refs": 20
+  },
+  {
+    "name": "Qlik",
+    "num_refs": 65
+  },
+  {
+    "name": "Rapha\u00ebl_(JavaScript_library)",
+    "num_refs": 69
+  },
+  {
+    "name": "Cascading_Style_Sheets",
+    "num_refs": 14
+  },
+  {
+    "name": "Zoomdata",
+    "num_refs": 48
+  },
+  {
+    "name": "Protovis_himalayensis",
+    "num_refs": 15
+  },
+  {
+    "name": "Gnuplot",
+    "num_refs": 50
+  },
+  {
+    "name": "Matplotlib",
+    "num_refs": 57
+  },
+  {
+    "name": "Datacopia",
+    "num_refs": 50
+  },
+  {
+    "name": "Jeffrey_Heer",
+    "num_refs": 81
+  },
+  {
+    "name": "Document_Object_Model",
+    "num_refs": 11
+  },
+  {
+    "name": "Scalable_Vector_Graphics",
+    "num_refs": 188
+  },
+  {
+    "name": "Software_release_life_cycle",
+    "num_refs": 15
+  },
+  {
+    "name": "Processing_(programming_language)",
+    "num_refs": 39
+  },
+  {
+    "name": "Web_mapping",
+    "num_refs": 11
+  },
+  {
+    "name": "BSD_licenses",
+    "num_refs": 158
+  },
+  {
+    "name": "GeoJSON",
+    "num_refs": 49
+  }
+]
+
+    var testdata_to = [
+  {
+    "name": "Datadog",
+    "num_refs": 12
+  },
+  {
+    "name": "List_of_information_graphics_software",
+    "num_refs": 51
+  },
+  {
+    "name": "TypeScript",
+    "num_refs": 126
+  },
+  {
+    "name": "Comparison_of_JavaScript_charting_frameworks",
+    "num_refs": 115
+  },
+  {
+    "name": "Processing.js",
+    "num_refs": 47
+  },
+  {
+    "name": "OpenStreetMap",
+    "num_refs": 19
+  },
+  {
+    "name": "List_of_JavaScript_libraries",
+    "num_refs": 262
+  },
+  {
+    "name": "Mike_Bostock",
+    "num_refs": 29
+  },
+  {
+    "name": "Main_Page",
+    "num_refs": 17
+  },
+  {
+    "name": "Plotly",
+    "num_refs": 23
+  },
+  {
+    "name": "Business_intelligence_software",
+    "num_refs": 79
+  },
+  {
+    "name": "Data_visualization",
+    "num_refs": 14
+  },
+  {
+    "name": "List_of_charting_software",
+    "num_refs": 11
+  },
+  {
+    "name": "D3",
+    "num_refs": 123
+  },
+  {
+    "name": "List_of_reporting_software",
+    "num_refs": 244
+  },
+  {
+    "name": "SVG_animation",
+    "num_refs": 24
+  }
+]
+    function get_weight(v) {
+        return Math.log(v);
+    }
+    var raw_results_to = '{{ results_to |tojson}}'
+    var raw_results_from = '{{ results_from |tojson}}'
+    var starticle = '{{article}}'
+
+    var results_to = JSON.parse(raw_results_to);
+    var results_from = JSON.parse(raw_results_from);
+
+    var master_nodes = results_to.map(x => ({"id": x.name, "group": 0, "weight": get_weight(x.num_refs)}))
+        .concat(results_from.map(x => ({"id": x.name, "group": 2, "weight": get_weight(x.num_refs)})))
+        .filter((v,i,a) => a.indexOf(v).id === i.id)
+        .sort((a,b) => b.weight - a.weight)
+        .slice(0, 20);
+
+    var master_links = master_nodes.map(x => ({"source": (x.group == 0) ? x.id : starticle, "target": (x.group == 0) ? starticle : x.id, "value": x.weight}));
+
+    //for (var i = 0; i < master_nodes.length; i++);
+
+    master_nodes.push({"id": starticle, "group": 1})
+
+    var mygraph = {};
+    mygraph.nodes = master_nodes;
+    mygraph.links = master_links;
+
+    console.log(mygraph)
 
 	var margin = {top: 20, right: 20, bottom: 20, left: 10},
-	      width = 900 - margin.left - margin.right,
-	      halfWidth = width / 2,
-	      height = 300 - margin.top - margin.bottom,
-	      i = 0,
-	      duration = 500,
-	      root;
+	      width = window.innerWidth - margin.left - margin.right,
+	      height = window.innerHeight - margin.top - margin.bottom;
 
-	var clicked = true;
-	$("#option_hier").on("click", function() {
-		clicked = false;
-		d3.select("#svgclick").remove()
-	// $("#svgclick").empty();
-	});
+	var svg = d3.select("#chart").append("svg")
+        .attr("width", width)
+        .attr("height", height);
 
-	//$("#option_click").on("click", function() {
-		//if ($("#svgclick").is(':empty')) {
-	// if(clicked == false){
-	// 	clicked = true;
-	// 	console.log("YEAA")
+    var color = d3.scaleOrdinal(d3.schemeCategory20);
 
-	var getChildren = function(d){
-	    var a = [];
-	    if(d.winners) for(var i = 0; i < d.winners.length; i++){
-	      d.winners[i].isRight = false;
-	      d.winners[i].parent = d;
-	      a.push(d.winners[i]);
-	    }
-	    if(d.challengers) for(var i = 0; i < d.challengers.length; i++){
-	      d.challengers[i].isRight = true;
-	      d.challengers[i].parent = d;
-	      a.push(d.challengers[i]);
-	    }
-	    return a.length?a:null;
-	  }
-	  ;
-	var tree = d3.layout.tree().size([height, width]);
-	var diagonal = d3.svg.diagonal().projection(function(d) { return [d.y, d.x]; });
-	var elbow = function (d, i) {
-	if (d.source == d.target) return;
-	diagonal = d3.svg.diagonal().projection(function(d) { 
-	  return [d.y, d.x]; 
-	});
-	if (!d.target.isRight) {
-	  var o = {
-	    x: d.target.x0,
-	    y: d.target.y0
-	  };
-	  d = {
-	    source: calcLeft(d.source),
-	    target: o
-	  };
-	  return diagonal(d, i);
-	}
-	return diagonal(d, i);
-	};
-	var connector = elbow;
-	var calcLeft = function(d){
-	var l = d.y;
-	if(!d.isRight){
-	  l = d.y-halfWidth;
-	  l = halfWidth - l;
-	}
-	return {x : d.x, y : l};
-	};
-	var vis = d3.select("#chart").append("svg")
-	  .attr("width", width + margin.right + margin.left)
-	  .attr("height", height + margin.top + margin.bottom)
-	  .attr("id", "svgclick")
-	.append("g")
-	  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-	console.log("height is" + height);
+    var simulation = d3.forceSimulation()
+        .force("link", d3.forceLink().id(function(d) { return d.id; }))
+        .force("charge", d3.forceManyBody())
+        .force("center", d3.forceCenter(width / 2, height / 2));
 
-	// var jsonData = {}
-	// jsonData['name'] = "Life"
+  var link = svg.append("g")
+      .attr("class", "links")
+    .selectAll("line")
+    .data(mygraph.links)
+    .enter().append("line")
+      .attr("stroke-width", function(d) { return (d.value); });
 
-	var jsonData1 = '{{ results1 |tojson}}'
-	console.log(jsonData1)
-    var t = JSON.parse(jsonData1)
-	 var jsonData2 = '{{ results2 |tojson }}'
-	 console.log(jsonData2)
+  var node = svg.append("g")
+      .attr("class", "nodes")
+    .selectAll("circle")
+    .data(mygraph.nodes)
+    .enter().append("circle")
+      .attr("r", 5)
+      .attr("fill", function(d) {return color(d.group)} )
+      .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended));
 
-    var t2 = JSON.parse(jsonData2)
+  node.append("title")
+      .text(function(d) { return d.id; });
 
-    data = {}
-    data['name'] = '{{ article }}'
-    data['winners'] = t
-    data['challengers'] = t2
-    console.log(data)
+  simulation
+      .nodes(mygraph.nodes)
+      .on("tick", ticked);
 
-	var toArray = function(item, arr){
-	arr = arr || [];
-	var i = 0, l = item.children?item.children.length:0;
-	arr.push(item);
-	for(; i < l; i++){
-	  toArray(item.children[i], arr);
-	}
-	return arr;
-	};
+  simulation.force("link")
+      .links(mygraph.links);
 
-       jsonData = {
-        "name": "Overall Winner",
-        "winners": [
-          {
-            "name": "Winner Left 1"
-          },
-          {"name": "Winner Left 2"},
-          {"name": "Winner Left 3"}
-        ],
-        "challengers": [
-          {
-            "name": "Challenger Right 1",
-            "challengers": [
-              {"name": "Challenger Right 3"},
-              {"name": "Challenger Right 4"},
-              {"name": "Challenger Right 5"}
+  function ticked() {
+    link
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
 
-            ]
-          },
-          {
-            "name": "Challenger Right 2",
-            "challengers": [
-              {
-                "name": "Challenger Right 6"
-              },
-              {"name": "Challenger Right 7"},
-              {"name": "Challenger Right 8"}
+    node
+        .attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });
+  }
 
-            ]
-          }
-        ]
-      }
-      console.log("ORIG IS: " + jsonData)
-	//d3.json(jsonData, function(json) {
-	//jsonto(jsonData)
-	//function jsonto(json){
+    function dragstarted(d) {
+      if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
 
-	root = data;
-	root.x0 = height / 2;
-	root.y0 = width / 2;
-	var t1 = d3.layout.tree().size([height, halfWidth]).children(function(d){return d.winners;}),
-	    t2 = d3.layout.tree().size([height, halfWidth]).children(function(d){return d.challengers;});
-	t1.nodes(root);
-	t2.nodes(root);
+    function dragged(d) {
+      d.fx = d3.event.x;
+      d.fy = d3.event.y;
+    }
 
-	var rebuildChildren = function(node){
-	  node.children = getChildren(node);
-	  if(node.children) node.children.forEach(rebuildChildren);
-	}
-	rebuildChildren(root);
-	root.isLeft = false;
-	update(root);
-	//};
+    function dragended(d) {
+      if (!d3.event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
 
-	function update(source) {
-	// Compute the new tree layout.
-	var nodes = toArray(source);
-	console.log("NODES IS:" + nodes)
-	// Normalize for fixed-depth.
-	nodes.forEach(function(d) { d.y = d.depth * 180 + halfWidth; });
-	// Update the nodes…
-	var node = vis.selectAll("g.node")
-	    .data(nodes, function(d) { return d.id || (d.id = ++i); });
-	// Enter any new nodes at the parent's previous position.
-	var nodeEnter = node.enter().append("g")
-	    .attr("class", "node")
-	    .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
-	    .on("click", click);
-	nodeEnter.append("circle")
-	    .attr("r", 1e-6)
-	    .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
-	nodeEnter.append("text")
-	    .attr("dy", function(d) { return d.isRight?14:-8;})
-	    .attr("text-anchor", "middle")
-	    .text(function(d) { return d.name; })
-	    .style("fill-opacity", 1e-6);
-	// Transition nodes to their new position.
-	var nodeUpdate = node.transition()
-	    .duration(duration)
-	    .attr("transform", function(d) { p = calcLeft(d); return "translate(" + p.y + "," + p.x + ")"; })
-	    ;
-	nodeUpdate.select("circle")
-	    .attr("r", 4.5)
-	    .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
-	nodeUpdate.select("text")
-	    .style("fill-opacity", 1);
-	// Transition exiting nodes to the parent's new position.
-	var nodeExit = node.exit().transition()
-	    .duration(duration)
-	    .attr("transform", function(d) { p = calcLeft(d.parent||source); return "translate(" + p.y + "," + p.x + ")"; })
-	    .remove();
-	nodeExit.select("circle")
-	    .attr("r", 1e-6);
-	nodeExit.select("text")
-	    .style("fill-opacity", 1e-6);
-	// Update the links...
-	var link = vis.selectAll("path.link")
-	  .data(tree.links(nodes), function(d) { return d.target.id; });
-	 
-	// Enter any new links at the parent's previous position.
-	link.enter().insert("path", "g")
-	  .attr("class", "link")
-	  .attr("d", function(d) {
-	    var o = {x: source.x0, y: source.y0};
-	    return connector({source: o, target: o});
-	  });
-	// Transition links to their new position.
-	link.transition()
-	  .duration(duration)
-	  .attr("d", connector); /**/
-	// Transition exiting nodes to the parent's new position.
-	link.exit().transition()
-	  .duration(duration)
-	  .attr("d", function(d) {
-	    var o = calcLeft(d.source||source);
-	    if(d.source.isRight) o.y -= halfWidth - (d.target.y - d.source.y);
-	    else o.y += halfWidth - (d.target.y - d.source.y);
-	    return connector({source: o, target: o});
-	  })
-	  .remove();
-	// Stash the old positions for transition.
-	nodes.forEach(function(d) {
-	var p = calcLeft(d);
-	d.x0 = p.x;
-	d.y0 = p.y;
-	});
-
-	// Toggle children on click.
-	function click(d) {
-	if (d.children) {
-	  d._children = d.children;
-	  d.children = null;
-	} else {
-	  d.children = d._children;
-	  d._children = null;
-	}
-	update(source);
-		}
-	}
-	//}
-	
-	//});
-	//click_viz()
 	</script>
 {% endblock %}
 
 {% block content %}
-		
+
 <h1 id="title1">Wikipedia Clicks & Hierarchies</h1>
 	<div class="btn-group btn-group-toggle" data-toggle="buttons">
   		<label class="btn btn-secondary active" id="option_click">
@@ -302,7 +374,7 @@
 				<!-- </div> -->
 				<button type="submit" class="btn btn-default">Search</button>
 			</div>
-		</form>    
+		</form>
     <div id="chart"></div>
 
 {% endblock %}
