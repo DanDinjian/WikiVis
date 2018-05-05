@@ -27,6 +27,7 @@ def profiled():
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = 'postgres://vis:wikivis@130.64.128.179:5432'
 app.config['SECRET_KEY'] = '7d441f27d441f27567d441f2b6176a'
+app.config["SQLALCHEMY_POOL_TIMEOUT"] = '10'
 
 Bootstrap(app)
 
@@ -151,15 +152,16 @@ def get_clickstream_to(aname):
 """
 def get_clickstream_to(aname):
     links = []
+    print("Getting \"to\" links from " + aname)
     marticle = db.session.query(Article.id).filter(db.func.lower(Article.name) == db.func.lower(aname)).first()
     subq = ClickstreamLink.query.filter(ClickstreamLink.link_from == marticle.id).all()
+    print(subq)
     for q in subq:
         leaf = Article.query.filter(Article.id == q.link_to).first()
 
         links.append({'name': leaf.name, 'num_refs': q.num_refs})
 
     return links
-
 
 @app.route('/api/clickstream/from/<string:aname>', methods=['GET'])
 def request_clickstream_from(aname):
@@ -168,6 +170,7 @@ def request_clickstream_from(aname):
 
 def get_clickstream_from(aname):
     links = []
+    print("Getting \"from\" links from " + aname)
     marticle = db.session.query(Article.id).filter(db.func.lower(Article.name) == db.func.lower(aname)).first()
     subq = ClickstreamLink.query.filter(ClickstreamLink.link_to == marticle.id).all()
     for q in subq:
@@ -178,4 +181,4 @@ def get_clickstream_from(aname):
     return links
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(threaded=True, debug=True)

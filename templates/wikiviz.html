@@ -66,12 +66,31 @@
     var master_links = master_nodes.map(x => ({"source": (x.group == 0) ? x.id : starticle, "target": (x.group == 0) ? starticle : x.id, "value": x.weight}));
 
     var promises = []
+    var results = []
     var url = location.origin
+    
+    function closure(i, callback) {
+        return function(n) {
+            return callback(i, n);
+        }
+    }
 
     for (var i = 0; i < master_nodes.length; i++) {
         console.log("Getting links for " + master_nodes[i].id);
-        promises.push({"promise": $.get( url + "/api/clickstream/to/" + master_nodes[i].id ), "is_to": true, "name": master_nodes[i].id});
-        promises.push({"promise": $.get( url + "/api/clickstream/from/" + master_nodes[i].id), "is_to": false, "name": master_nodes[i].id});
+        promises.push(new $.Deferred());
+        $.ajax({
+            "url": url + "/api/clickstream/to/" + master_nodes[i].id,
+            "success": closure(i, function (i, n) {
+                results.push({"result": n, "is_to": true, "name": master_nodes[i].id});
+                promises[2*i].resolve();}),
+        });
+        promises.push(new $.Deferred());
+        $.ajax({
+            "url": url + "/api/clickstream/from/" + master_nodes[i].id,
+            "success": closure(i, function (i, n) {
+                results.push({"result": n, "is_to": false, "name": master_nodes[i].id});
+                promises[(2*i)+1].resolve();}),
+        });
     }
 
     function get_internal_links(jsondata, nodes, links, name, is_to) {
@@ -84,11 +103,14 @@
         }
     }
 
-    $.when.apply($, promises.map(x => x.promise)).done( function() {
-        for (var i = 0; i < arguments.length; i++) {
-            console.log("Found links for " + promises[i].name)
-            var jsondata = arguments[i][0]
-            get_internal_links(jsondata, master_nodes, master_links, promises[i].name, promises[i].is_to)
+    
+
+    $.when.apply($, promises).done( function() {
+        for (var i = 0; i < results.length; i++) {
+            console.log("Found links for " + results[i].name)
+            console.log(results[i])
+            var jsondata = results[i].result
+            get_internal_links(jsondata, master_nodes, master_links, results[i].name, results[i].is_to)
         }
 
         console.log("About to finish doing stuff")
@@ -150,36 +172,37 @@
 
       simulation.force("link")
           .links(mygraph.links);
-    }
 
-  function ticked() {
-    link
-        .attr("x1", function(d) { return d.source.x; })
-        .attr("y1", function(d) { return d.source.y; })
-        .attr("x2", function(d) { return d.target.x; })
-        .attr("y2", function(d) { return d.target.y; });
+    function ticked() {
+        link
+            .attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
 
-    node
-        .attr("cx", function(d) { return d.x; })
-        .attr("cy", function(d) { return d.y; });
-  }
+        node
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; });
+      }
 
-    function dragstarted(d) {
-      if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
-    }
+        function dragstarted(d) {
+          if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x;
+          d.fy = d.y;
+        }
 
-    function dragged(d) {
-      d.fx = d3.event.x;
-      d.fy = d3.event.y;
-    }
+        function dragged(d) {
+          d.fx = d3.event.x;
+          d.fy = d3.event.y;
+        }
 
-    function dragended(d) {
-      if (!d3.event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
-    }
+        function dragended(d) {
+          if (!d3.event.active) simulation.alphaTarget(0);
+          d.fx = null;
+          d.fy = null;
+        }
+   }
+
 
 	</script>
 {% endblock %}
