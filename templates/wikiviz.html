@@ -65,45 +65,40 @@
 
     var master_links = master_nodes.map(x => ({"source": (x.group == 0) ? x.id : starticle, "target": (x.group == 0) ? starticle : x.id, "value": x.weight}));
 
-    var promises_to = []
-    var promises_from = []
-    var url = "http://127.0.0.1:5000"
+    var promises = []
+    var url = location.origin
 
     for (var i = 0; i < master_nodes.length; i++) {
-        promises_to.push({"promise": $.get( url + "/api/clickstream/to/" + master_nodes[i].id ), "name": master_nodes[i].id});
+        console.log("Getting links for " + master_nodes[i].id);
+        promises.push({"promise": $.get( url + "/api/clickstream/to/" + master_nodes[i].id ), "is_to": true, "name": master_nodes[i].id});
+        promises.push({"promise": $.get( url + "/api/clickstream/from/" + master_nodes[i].id), "is_to": false, "name": master_nodes[i].id});
     }
 
-    function get_internal_links(jsondata, nodes, links, promises, is_to) {
-        for (var i = 0; i < jsondata.length; i++) {
+    function get_internal_links(jsondata, nodes, links, name, is_to) {
+        for (var j = 0; j < jsondata.length; j++) {
+            console.log("Linking to " + jsondata[j].name)
             var index = nodes.findIndex(x => x.id == jsondata[j].name)
             if (index != -1) {
-                links.push({"source": (is_to) ? promises[i].name : jsondata[j].name, "target": (is_to) ? jsondata[j].name : promises[i].name, "value": get_weight(jsondata[j].num_refs)});
+                links.push({"source": (is_to) ? name : jsondata[j].name, "target": (is_to) ? jsondata[j].name : name, "value": get_weight(jsondata[j].num_refs)});
             }
         }
     }
 
-    $.when.apply($, promises_to.map(x => x.promise)).done( function() {
+    $.when.apply($, promises.map(x => x.promise)).done( function() {
         for (var i = 0; i < arguments.length; i++) {
-            var jsondata = JSON.parse(arguments[i]);
-            get_internal_links(jsondata, master_nodes, links, promises_to, true)
+            console.log("Found links for " + promises[i].name)
+            var jsondata = arguments[i][0]
+            get_internal_links(jsondata, master_nodes, master_links, promises[i].name, promises[i].is_to)
         }
 
-        for (var k = 0; k < master_nodes.length; k++) {
-            promises_from.push({"promise": $.get( url + "/api/clickstream/from" + master_nodes[i].id ), "name": master_nodes[i].id});
-        }
+        console.log("About to finish doing stuff")
 
-        $.when.apply($, promises_from.map(x => x.promise)).done( function () {
-            for (var i = 0; l < arguments.length; i++) {
-                var jsondata2 = JSON.parse(arguments[i]);
-                get_internal_links(jsondata2, master_nodes, links, promises_from, false);
-            }
-
-            finish_doing_stuff();
-        })
+        finish_doing_stuff();
     });
 
     function finish_doing_stuff()
     {
+        console.log("Finishing doing stuff")
         master_nodes.push({"id": starticle, "group": 1})
 
         var mygraph = {};

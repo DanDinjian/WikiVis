@@ -1,8 +1,28 @@
 from flask import *
 from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField
 from flask_sqlalchemy import SQLAlchemy
+#import psycopg2 as dbr
 import requests
 from flask_bootstrap import Bootstrap
+
+import cProfile
+import io as StringIO
+import pstats
+import contextlib
+
+@contextlib.contextmanager
+def profiled():
+    pr = cProfile.Profile()
+    pr.enable()
+    yield
+    pr.disable()
+    s = StringIO.StringIO()
+    ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
+    ps.print_stats()
+    # uncomment this to see who's calling what
+    # ps.print_callers()
+    print(s.getvalue())
+
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = 'postgres://vis:wikivis@130.64.128.179:5432'
@@ -14,9 +34,12 @@ SERVER_NAME = "http://127.0.0.1:5000/"
 
 db = SQLAlchemy(app)
 
-WIKI_LINKS_URL = "https://en.wikipedia.org/w/api.php?action=query&prop=links&pllimit=max&format=json&redirects=true&titles="
-
 from models import *
+
+#dbparams = {"database": "vis", "user": "vis", "password": "wikivis", "host": "130.64.128.179", "port": 5432}
+#conn = dbr.connect(**dbparams)
+
+WIKI_LINKS_URL = "https://en.wikipedia.org/w/api.php?action=query&prop=links&pllimit=max&format=json&redirects=true&titles="
 
 class ReusableForm(Form):
     article = TextField('Search:', validators=[validators.required()], render_kw={"placeholder": "article name"})
@@ -107,9 +130,28 @@ def get_hierarchy_links(name):
 def request_clickstream_to(aname):
     return jsonify(get_clickstream_to(aname))
 
+"""
 def get_clickstream_to(aname):
     links = []
-    marticle = Article.query.filter(db.func.lower(Article.name) == db.func.lower(aname)).first()
+    cur = conn.cursor()
+    qarticle = "SELECT * FROM articles WHERE LOWER(name) LIKE LOWER((%s))"
+    qlinks = "SELECT * FROM hierarchy_links WHERE link_from = (%s)"
+    qartname = "SELECT * FROM articles WHERE id = (%i)"
+
+    cur.execute(qarticle, (aname,))
+    print(cur.fetchall())
+    #art_id = cur.fetchall()[0][0]
+
+    #cur.execute(qlinks, (art_id,))
+    #leaves = cur.fetchall()
+    #print(l[0])
+    return links
+
+
+"""
+def get_clickstream_to(aname):
+    links = []
+    marticle = db.session.query(Article.id).filter(db.func.lower(Article.name) == db.func.lower(aname)).first()
     subq = ClickstreamLink.query.filter(ClickstreamLink.link_from == marticle.id).all()
     for q in subq:
         leaf = Article.query.filter(Article.id == q.link_to).first()
@@ -118,25 +160,15 @@ def get_clickstream_to(aname):
 
     return links
 
-"""
-def get_clickstream_to_OLD(aname):
-    links = []
-    subq = db.session.query(ClickstreamLink.link_from, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_to, db.func.lower(Article.name) == db.func.lower(aname))).subquery('subq')
-    leaves = db.session.query(Article.name, subq.c.num_refs).join(subq, subq.c.link_from == Article.id)
-
-    for l in leaves:
-        links.append({'name': l[0], 'num_refs': l[1]})
-
-    return links
-"""
 
 @app.route('/api/clickstream/from/<string:aname>', methods=['GET'])
 def request_clickstream_from(aname):
     return jsonify(get_clickstream_from(aname))
 
+
 def get_clickstream_from(aname):
     links = []
-    marticle = Article.query.filter(db.func.lower(Article.name) == db.func.lower(aname)).first()
+    marticle = db.session.query(Article.id).filter(db.func.lower(Article.name) == db.func.lower(aname)).first()
     subq = ClickstreamLink.query.filter(ClickstreamLink.link_to == marticle.id).all()
     for q in subq:
         leaf = Article.query.filter(Article.id == q.link_from).first()
@@ -144,18 +176,6 @@ def get_clickstream_from(aname):
         links.append({'name': leaf.name, 'num_refs': q.num_refs})
 
     return links
-
-"""
-def get_clickstream_from(aname):
-    links = []
-    subq = db.session.query(ClickstreamLink.link_to, ClickstreamLink.num_refs).join(Article, db.and_(Article.id == ClickstreamLink.link_from, db.func.lower(Article.name) == db.func.lower(aname))).subquery('subq')
-    sources = db.session.query(Article.name, subq.c.num_refs).join(subq, subq.c.link_to == Article.id)
-
-    for s in sources:
-        links.append({'name': s[0], 'num_refs': s[1]})
-
-    return links
-"""
 
 if __name__ == '__main__':
     app.run(debug=True)
