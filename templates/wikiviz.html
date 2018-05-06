@@ -68,7 +68,7 @@
     var promises = []
     var results = []
     var url = location.origin
-    
+
     function closure(i, callback) {
         return function(n) {
             return callback(i, n);
@@ -93,25 +93,27 @@
         });
     }
 
-    function get_internal_links(jsondata, nodes, links, name, is_to) {
+    function get_internal_links(jsondata, nodes, name, is_to) {
+        var nlinks = []
         for (var j = 0; j < jsondata.length; j++) {
             console.log("Linking to " + jsondata[j].name)
             var index = nodes.findIndex(x => x.id == jsondata[j].name)
             if (index != -1) {
-                links.push({"source": (is_to) ? name : jsondata[j].name, "target": (is_to) ? jsondata[j].name : name, "value": get_weight(jsondata[j].num_refs)});
+                nlinks.push({"source": (is_to) ? name : jsondata[j].name, "target": (is_to) ? jsondata[j].name : name, "value": get_weight(jsondata[j].num_refs)});
             }
         }
+        return nlinks
     }
 
-    
-
     $.when.apply($, promises).done( function() {
+        var new_links = []
         for (var i = 0; i < results.length; i++) {
             console.log("Found links for " + results[i].name)
             console.log(results[i])
             var jsondata = results[i].result
-            get_internal_links(jsondata, master_nodes, master_links, results[i].name, results[i].is_to)
+            new_links = new_links.concat(get_internal_links(jsondata, master_nodes, results[i].name, results[i].is_to));
         }
+        master_links = master_links.concat(new_links.sort((a,b) => b.value - a.value).slice(0, 20));
 
         console.log("About to finish doing stuff")
 
@@ -143,6 +145,8 @@
             .force("link", d3.forceLink().id(function(d) { return d.id; }))
             .force("charge", d3.forceManyBody())
             .force("center", d3.forceCenter(width / 2, height / 2));
+
+        simulation.force("charge").strength(-1 * Math.min(width, height))
 
       var link = svg.append("g")
           .attr("class", "links")
