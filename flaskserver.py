@@ -120,7 +120,7 @@ def get_hierarchy_links(name):
             pageid = list(data['query']['pages'])[0]
             links_as_dictlist = data['query']['pages'][pageid]['links']
             for d in links_as_dictlist:
-                links.append({'name': d['title'].replace(' ', '_')} )
+                links.append({'name': '_'.join(d['title'].split())} )
         if 'continue' in data:
             suffix = "&plcontinue=" + data['continue']['plcontinue']
         else:
@@ -131,31 +131,13 @@ def get_hierarchy_links(name):
 def request_clickstream_to(aname):
     return jsonify(get_clickstream_to(aname))
 
-"""
+
 def get_clickstream_to(aname):
     links = []
-    cur = conn.cursor()
-    qarticle = "SELECT * FROM articles WHERE LOWER(name) LIKE LOWER((%s))"
-    qlinks = "SELECT * FROM hierarchy_links WHERE link_from = (%s)"
-    qartname = "SELECT * FROM articles WHERE id = (%i)"
-
-    cur.execute(qarticle, (aname,))
-    print(cur.fetchall())
-    #art_id = cur.fetchall()[0][0]
-
-    #cur.execute(qlinks, (art_id,))
-    #leaves = cur.fetchall()
-    #print(l[0])
-    return links
-
-
-"""
-def get_clickstream_to(aname):
-    links = []
+    aname = '_'.join(aname.split())
     print("Getting \"to\" links from " + aname)
     marticle = db.session.query(Article.id).filter(db.func.lower(Article.name) == db.func.lower(aname)).first()
-    subq = ClickstreamLink.query.filter(ClickstreamLink.link_from == marticle.id).all()
-    print(subq)
+    subq = ClickstreamLink.query.filter(ClickstreamLink.link_from == marticle.id).limit(1000).all()
     for q in subq:
         leaf = Article.query.filter(Article.id == q.link_to).first()
 
@@ -170,9 +152,10 @@ def request_clickstream_from(aname):
 
 def get_clickstream_from(aname):
     links = []
+    aname = '_'.join(aname.split())
     print("Getting \"from\" links from " + aname)
     marticle = db.session.query(Article.id).filter(db.func.lower(Article.name) == db.func.lower(aname)).first()
-    subq = ClickstreamLink.query.filter(ClickstreamLink.link_to == marticle.id).all()
+    subq = ClickstreamLink.query.filter(ClickstreamLink.link_to == marticle.id).limit(1000).all()
     for q in subq:
         leaf = Article.query.filter(Article.id == q.link_from).first()
 

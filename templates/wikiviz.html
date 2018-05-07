@@ -50,6 +50,10 @@
     function get_weight(v) {
         return Math.log(v);
     }
+    
+    var master_nodes = []
+    var master_links = []
+
     var raw_results_to = '{{ results_to |tojson}}'
     var raw_results_from = '{{ results_from |tojson}}'
     var starticle = '{{article}}'
@@ -57,13 +61,18 @@
     var results_to = JSON.parse(raw_results_to);
     var results_from = JSON.parse(raw_results_from);
 
-    var master_nodes = results_to.map(x => ({"id": x.name, "group": 0, "weight": get_weight(x.num_refs)}))
-        .concat(results_from.map(x => ({"id": x.name, "group": 2, "weight": get_weight(x.num_refs)})))
+    master_nodes = master_nodes.concat(
+            results_to.map(x => ({"id": x.name, "group": 0, "weight": get_weight(x.num_refs)}))
+            .concat(results_from.map(x => ({"id": x.name, "group": 2, "weight": get_weight(x.num_refs)}))))
         .filter((v,i,a) => a.indexOf(v).id === i.id)
         .sort((a,b) => b.weight - a.weight)
         .slice(0, 20);
 
-    var master_links = master_nodes.map(x => ({"source": (x.group == 0) ? x.id : starticle, "target": (x.group == 0) ? starticle : x.id, "value": x.weight}));
+    master_links = master_links.concat(
+        master_nodes.map(x => ({"source": (x.group == 0) ? x.id : starticle, "target": (x.group == 0) ? starticle : x.id, "value": x.weight})));
+
+
+//    function addNewArticles    
 
     var promises = []
     var results = []
@@ -159,16 +168,20 @@
           .attr("class", "nodes")
         .selectAll("circle")
         .data(mygraph.nodes)
-        .enter().append("circle")
-          .attr("r", 5)
-          .attr("fill", function(d) {return color(d.group)} )
-          .call(d3.drag()
+        .enter().append("g")
+        .call(d3.drag()
               .on("start", dragstarted)
               .on("drag", dragged)
               .on("end", dragended));
 
-      node.append("title")
-          .text(function(d) { return d.id; });
+        node.append("circle")
+          .attr("r", 5)
+          .attr("fill", function(d) {return color(d.group)} );
+
+        node.append("text")
+            .attr("dx", 12)
+            .attr("dy", ".35em")
+            .text(function(d) { return d.id.replace(/_/g, ' ') });
 
       simulation
           .nodes(mygraph.nodes)
@@ -184,9 +197,12 @@
             .attr("x2", function(d) { return d.target.x; })
             .attr("y2", function(d) { return d.target.y; });
 
-        node
+/*        node
             .attr("cx", function(d) { return d.x; })
             .attr("cy", function(d) { return d.y; });
+*/
+        node
+            .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
       }
 
         function dragstarted(d) {
