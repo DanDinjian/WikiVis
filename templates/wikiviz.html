@@ -18,14 +18,82 @@
   stroke-opacity: 0.6;
 }
 
+#heading {
+    display: inline-block;
+    width: 100%;
+}
+
 .nodes circle {
   stroke: #000;
   stroke-width: 1.5px;
 }
 
+.form-group1 {
+	width: 20%;
+    margin-left: 10%;
+    padding-top: 20px;
+}
+
+#chart {
+    /* position: fixed; */
+    width: 80%;
+    display: inline-block;
+    height: 100%;
+}
+
+#side_menu {
+	position: fixed;
+	width: 19%;
+	overflow-y: scroll;
+    top: 0;
+    border-left: 1px dashed;
+    /* vertical-align: 0%; */
+	bottom: 0;
+	display: inline-block;
+}
+
+#side_menu form {
+    align-content: center;
+}
+
+
+.wikipreview {
+	width:100%;
+}
+
+.wikipreview p {
+	font-size: 12px;
+	margin-left: 5px;
+	margin-right: 5px;
+	padding: 5px;
+	background-color: #f4feef;
+}
+
+.wikipreview h4 {
+	text-align: center;
+}
+
+.wikipreview img {
+	width: 100%;
+	height: 200px;
+}
+
 </style>
 
 <script>
+
+    /* For Getting WikiPreview Data
+     * 
+     * article_link = "https://en.wikipedia.org/api/rest_v1/page/summary/" + Political_philosophy (article name)
+
+    article_link = "https://en.wikipedia.org/api/rest_v1/page/summary/Individualist_anarchism"
+
+    jQuery.getJSON(article_link, function(resp) {
+        console.log(resp);
+    })
+
+     * response has image link if applicable, title, and summary text
+     */
 
 	$(document).ready(function(){
     $("#article").autocomplete({
@@ -233,7 +301,7 @@
     }
 
     var margin = {top: 20, right: 20, bottom: 20, left: 10},
-	      width = window.innerWidth - margin.left - margin.right,
+	      width = window.innerWidth*.8 - margin.left - margin.right,
 	      height = window.innerHeight - margin.top - margin.bottom;
 
 	var svg = d3.select("#chart").append("svg")
@@ -360,27 +428,35 @@
 
 {% block content %}
 
-<h1 id="title1">Wikipedia Clicks & Hierarchies</h1>
-	<div class="btn-group btn-group-toggle" data-toggle="buttons">
-  		<label class="btn btn-secondary active" id="option_click">
-    		<input type="radio" name="options" id="option1" autocomplete="off" checked> Clickstream
-  		</label>
-  		<label class="btn btn-secondary" id="option_hier">
-    		<input type="radio" name="options" id="option2" autocomplete="off"> Hierarchy
-  		</label>
-	</div>
+<div id="heading"><h1 id="title1">Wikipedia Clicks & Hierarchies</h1></div>
+<div id="chart"></div>
+<div id="side_menu">
+    <form action="/wikiviz" method="post">
+        <div class="form-group1">
+            {{ form.csrf }}
 
+            <!-- <div type="search" placeholder="search another page" class="form-control" id="wikipage"> -->
+                {{ form.article }}
+            <!-- </div> -->
+            <button type="submit" class="btn btn-default">Search</button>
+        </div>
+    </form>
+    <div id="wikidiv">
+        <div class="wikipreview">
+            <h4>Political philosophy</h4>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/9/98/Sanzio_01_Plato_Aristotle.jpg"></img>
+            <p><b>Political philosophy</b>, or <b>political theory</b>, is the study of topics such as politics, liberty, justice, property, rights, law, and the enforcement of laws by authority: what they are, why they are needed, what, if anything, makes a government legitimate, what rights and freedoms it should protect and why, what form it should take and why, what the law is, and what duties citizens owe to a legitimate government, if any, and when it may be legitimately overthrown, if ever.</p>
+            <hr>
+        </div>
 
-		<form action="/wikiviz" method="post">
-			<div class="form-group1">
-            	{{ form.csrf }}
+        <div class="wikipreview">
+            <h4>Individualist anarchism</h4>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Anarchy-symbol.svg"></img>
+            <p><b>Individualist anarchism</b> refers to several traditions of thought within the anarchist movement that emphasize the individual and their will over external determinants such as groups, society, traditions and ideological systems. Individualist anarchism is not a single philosophy but refers to a group of individualistic philosophies that sometimes are in conflict. Benjamin Tucker, a famous 19th century individualist anarchist, held that &quot;if the individual has the right to govern himself, all external government is tyranny&quot;.</p>
+            <hr>
+        </div>
 
-				<!-- <div type="search" placeholder="search another page" class="form-control" id="wikipage"> -->
-					{{ form.article }}
-				<!-- </div> -->
-				<button type="submit" class="btn btn-default">Search</button>
-			</div>
-		</form>
-    <div id="chart"></div>
+    </div>
+</div>
 
 {% endblock %}
