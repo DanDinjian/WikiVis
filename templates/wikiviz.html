@@ -81,28 +81,22 @@
     }
 
     function get_set_from_links(array) {
-        return array.filter(function(v,i,a) { var t = a.findIndex(x => (x.source.id || x.source) == (v.source.id || v.source) && (x.target.id || x.target) == (v.target.id || v.target)); console.log("TEST"); console.log(a[t]); console.log(v); console.log(t + " vs " + i); return t == i});
+        return array.filter((v,i,a) => a.findIndex(x => (x.source.id || x.source) == (v.source.id || v.source) && (x.target.id || x.target) == (v.target.id || v.target)) == i);
     }
 
     function add_new_article(innodes, inlinks, article, nnum, callback) {
         var promises = [new $.Deferred(), new $.Deferred()];
         var results = [];
-        var nodes = [];
-        var links = [];
         get_article_data(article, results, promises[0], promises[1]);
 
         var new_article_node = {"title": article, "group": 1, "weight": 0};
 
         $.when.apply($, promises).done(function () {
-            ngraph = generate_article_graph_data(article, results, [new_article_node], nnum, true);
+            var ngraph = generate_article_graph_data(article, results, [new_article_node], nnum, true);
 
             var new_nodes = ngraph[0];
-            nodes = new_nodes.concat(innodes);
-            nodes = get_set_from_nodes(nodes);
 
             var new_links = ngraph[1];
-            links = links.concat(new_links);
-            links = get_set_from_links(links);
 
             var lpromises = [];
             var lresults = [];
@@ -113,11 +107,12 @@
             }
 
             $.when.apply($, lpromises).done(function () {
-                lgraph = generate_article_graph_data(article, lresults, nodes.filter(x => x.group != 1), 0, false);
+                var lgraph = generate_article_graph_data(article, lresults, new_nodes.concat(innodes.filter(x => x.group != 1)), 0, false);
 
-                links = links.concat(lgraph[1])
+                var links = new_links.concat(lgraph[1]).concat(inlinks);
+                var nodes = new_nodes.concat(innodes);
 
-                og_node = nodes.findIndex(x => x.title == article);
+                var og_node = nodes.findIndex(x => x.title == article);
 
                 if (og_node == -1) {
                     nodes.push(new_article_node);
@@ -125,12 +120,11 @@
                     nodes[og_node].group = 1;
                 }
 
-                var outnodes = get_set_from_nodes(nodes);
-                outnodes.push({"MARKER": 12345});
-                console.log(outnodes)
-                var outlinks = get_set_from_links(inlinks.concat(links))
+                console.log("RESULTS")
+                console.log(nodes)
+                console.log(links)
 
-                callback(outnodes, outlinks)
+                callback(nodes, get_set_from_links(links))
 
             });
         });
@@ -146,8 +140,6 @@
             return nlinks
         }
 
-
-
         function generate_article_graph_data(article, data, nodes, nnum, should_nodes) {
             var nnodes = [];
             var nlinks = [];
@@ -159,12 +151,14 @@
                 }
             }
 
+            nnodes = get_set_from_nodes(nnodes);
+
             nnodes = nnodes.sort((a,b) => b.weight - a.weight).slice(0, nnum)
 
             for (var i = 0; i < data.length; i++) {
                 nlinks = nlinks.concat(get_internal_links(data[i].result, nnodes.concat(nodes), data[i].name, data[i].is_to));
             }
-            return [nnodes, nlinks];
+            return [nnodes, get_set_from_links(nlinks)];
         }
 
         function get_article_data(article, results, promise_to, promise_from) {
@@ -189,6 +183,7 @@
         return (a || b) && !(a && b);
     }
 
+/*
     function trim_graph(mnodes, mlinks, ncn) {
 
         var safe_nodes = mnodes.filter(x => x.group == 1);
@@ -209,6 +204,33 @@
 
         return [get_set_from_nodes(safe_nodes.concat(top_risk_nodes)), get_set_from_links(safe_links.concat(top_risk_links).concat(top_intr_links))];
     }
+*/
+
+    function get_source(weird) {
+        return weird.source.title || weird.source;
+    }
+
+    function get_target(weird) {
+        return weird.target.title || weird.target;
+    }
+
+    function trim_graph(mnodes, mlinks, ncn) {
+        var safe_nodes = mnodes.filter(x => x.group == 1);
+        var risk_nodes = mnodes.filter(x => safe_nodes.findIndex(y => y.title == x.title) == -1);
+
+        var safe_links = mlinks.filter(x => mnodes.find(y => y.title == get_source(x)).group == 1 && mnodes.find(y => y.title == get_target(x)).group == 1);
+        var risk_links = mlinks.filter(x => xor(mnodes.find(y => y.title == get_source(x)).group == 1, mnodes.find(y => y.title == get_target(x)).group == 1));
+        var intr_links = mlinks.filter(x => !(mnodes.find(y => y.title == get_source(x)).group == 1 || mnodes.find(y => y.title == get_target(x)).group == 1));
+
+        var top_risk_links = risk_links.sort((a,b) => b.value - a.value).slice(0, ncn);
+        var top_risk_nodes = risk_nodes.filter(x => top_risk_links.findIndex(y => x.title == get_source(y)) != -1 || top_risk_links.findIndex(y => x.title == get_target(y)) != -1);
+
+        var valid_intr_links = intr_links.filter(x => top_risk_nodes.findIndex(y => y.title == get_source(x)) != -1 && top_risk_nodes.findIndex(y => y.title == get_target(x)) != -1);
+
+        var top_intr_links = valid_intr_links.sort((a,b) => b.value - a.value).slice(0, ncn);
+
+        return [safe_nodes.concat(top_risk_nodes), safe_links.concat(top_risk_links).concat(top_intr_links)];
+    }
 
     var margin = {top: 20, right: 20, bottom: 20, left: 10},
 	      width = window.innerWidth - margin.left - margin.right,
@@ -225,53 +247,61 @@
     var simulation = d3.forceSimulation()
         .force("link", d3.forceLink().id(function(d) { return d.title; }))
         .force("charge", d3.forceManyBody())
-        .force("center", d3.forceCenter(width / 2, height / 2));
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .on("tick", ticked);
 
     simulation.force("charge").strength(-1 * Math.min(width, height))
 
     var link = svg.append("g")
         .attr("class", "links")
-        .selectAll("line")
+        .selectAll(".link")
 
     var node = svg.append("g")
         .attr("class", "nodes")
-        .selectAll("circle");
+        .selectAll(".node");
 
     num_core_nodes += 1;
     add_new_article(master_nodes, master_links, starticle, node_num_algo(num_core_nodes), finish_doing_stuff);
-    var mygraph = {};
+    var mygraph = {"nodes": [], "links": []};
 
     function finish_doing_stuff(ooga_nodes, booga_links)
     {
-        console.log(master_nodes)
+        console.log(ooga_nodes)
 
-        var trimmed = trim_graph(master_nodes.concat(ooga_nodes), master_links.concat(booga_links), node_num_algo(num_core_nodes));
+        var trimmed = trim_graph(ooga_nodes, booga_links, node_num_algo(num_core_nodes));
 
-        master_nodes = trimmed[0];
-        master_links = trimmed[1];
-        mygraph.nodes = Object.assign([], master_nodes);
-        mygraph.links = Object.assign([], master_links);
-
-        console.log(mygraph)
-
-        restart();
+        mygraph.nodes = trimmed[0];
+        mygraph.links = trimmed[1];
+       
+        restart(mygraph.nodes, mygraph.links);
     }
 
-    function restart() {
-        node = node.data(mygraph.nodes);
-        node.exit().remove();
-        node = node.enter().append("g")
+    function restart(nodes, links) {
+
+        d3.selectAll(".fnode").remove();
+        d3.selectAll(".flink").remove();
+
+        console.log(nodes)
+        nodes.forEach(function(v) { delete v.x; delete v.y; });
+
+        console.log(node)
+        console.log(link)
+
+        node = node.exit().remove();
+        node = node.data(nodes).enter().append("g")
             .on('contextmenu', function(d, i ) {
                 d3.event.preventDefault();
                 num_core_nodes += 1;
-                add_new_article(master_nodes, master_links, d.title, node_num_algo(num_core_nodes), finish_doing_stuff);
+                add_new_article(nodes, links, d.title, node_num_algo(num_core_nodes), finish_doing_stuff);
             })
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
-                .on("end", dragended));
+                .on("end", dragended))
+            .attr("class", "fnode");
+
         node.append("circle")
-          .attr("r", 5)
+          .attr("r", 15)
           .attr("fill", function(d) {return color(d.group)} );
 
         node.append("text")
@@ -279,16 +309,16 @@
             .attr("dy", ".35em")
             .text(function(d) { return d.title.replace(/_/g, ' ') });
 
-        link = link.data(mygraph.links);
-        link.exit().remove();
-        link = link.enter().append("line")
-            .attr("stroke-width", function(d) { return (d.value); });
+        link = link.exit().remove();
+        link = link.data(links).enter().append("line")
+            .attr("stroke-width", function(d) { return (d.value); })
+            .attr("class", "flink");
 
         simulation
-            .nodes(mygraph.nodes)
-            .on("tick", ticked);
+            .nodes(nodes)
         simulation.force("link")
-            .links(mygraph.links);
+            .links(links);
+
         simulation.alpha(1).restart();
     }
 
