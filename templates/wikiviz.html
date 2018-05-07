@@ -47,12 +47,18 @@
 
     });
 
+    var num_core_nodes = 0;
+
+    var master_nodes = [];
+    var master_links = [];
+
     function get_weight(v) {
         return Math.log(v);
     }
-    
-    var master_nodes = []
-    var master_links = []
+
+    function node_num_algo(n) {
+        return 20 + (5 * (n - 1));
+    }
 
     var raw_results_to = '{{ results_to |tojson}}'
     var raw_results_from = '{{ results_from |tojson}}'
@@ -61,21 +67,6 @@
     var results_to = JSON.parse(raw_results_to);
     var results_from = JSON.parse(raw_results_from);
 
-    master_nodes = master_nodes.concat(
-            results_to.map(x => ({"id": x.name, "group": 0, "weight": get_weight(x.num_refs)}))
-            .concat(results_from.map(x => ({"id": x.name, "group": 2, "weight": get_weight(x.num_refs)}))))
-        .filter((v,i,a) => a.indexOf(v).id === i.id)
-        .sort((a,b) => b.weight - a.weight)
-        .slice(0, 20);
-
-    master_links = master_links.concat(
-        master_nodes.map(x => ({"source": (x.group == 0) ? x.id : starticle, "target": (x.group == 0) ? starticle : x.id, "value": x.weight})));
-
-
-//    function addNewArticles    
-
-    var promises = []
-    var results = []
     var url = location.origin
 
     function closure(i, callback) {
@@ -84,96 +75,201 @@
         }
     }
 
-    for (var i = 0; i < master_nodes.length; i++) {
-        console.log("Getting links for " + master_nodes[i].id);
-        promises.push(new $.Deferred());
-        $.ajax({
-            "url": url + "/api/clickstream/to/" + master_nodes[i].id,
-            "success": closure(i, function (i, n) {
-                results.push({"result": n, "is_to": true, "name": master_nodes[i].id});
-                promises[2*i].resolve();}),
-        });
-        promises.push(new $.Deferred());
-        $.ajax({
-            "url": url + "/api/clickstream/from/" + master_nodes[i].id,
-            "success": closure(i, function (i, n) {
-                results.push({"result": n, "is_to": false, "name": master_nodes[i].id});
-                promises[(2*i)+1].resolve();}),
-        });
+    function get_set_from_nodes(array) {
+        var outarr = array.filter((v,i,a) => a.findIndex(x => x.title == v.title) == i);
+        return outarr
     }
 
-    function get_internal_links(jsondata, nodes, name, is_to) {
-        var nlinks = []
-        for (var j = 0; j < jsondata.length; j++) {
-            console.log("Linking to " + jsondata[j].name)
-            var index = nodes.findIndex(x => x.id == jsondata[j].name)
-            if (index != -1) {
-                nlinks.push({"source": (is_to) ? name : jsondata[j].name, "target": (is_to) ? jsondata[j].name : name, "value": get_weight(jsondata[j].num_refs)});
+    function get_set_from_links(array) {
+        return array.filter(function(v,i,a) { var t = a.findIndex(x => (x.source.id || x.source) == (v.source.id || v.source) && (x.target.id || x.target) == (v.target.id || v.target)); console.log("TEST"); console.log(a[t]); console.log(v); console.log(t + " vs " + i); return t == i});
+    }
+
+    function add_new_article(innodes, inlinks, article, nnum, callback) {
+        var promises = [new $.Deferred(), new $.Deferred()];
+        var results = [];
+        var nodes = [];
+        var links = [];
+        get_article_data(article, results, promises[0], promises[1]);
+
+        var new_article_node = {"title": article, "group": 1, "weight": 0};
+
+        $.when.apply($, promises).done(function () {
+            ngraph = generate_article_graph_data(article, results, [new_article_node], nnum, true);
+
+            var new_nodes = ngraph[0];
+            nodes = new_nodes.concat(innodes);
+            nodes = get_set_from_nodes(nodes);
+
+            var new_links = ngraph[1];
+            links = links.concat(new_links);
+            links = get_set_from_links(links);
+
+            var lpromises = [];
+            var lresults = [];
+            for (var i = 0; i < new_nodes.length; i++) {
+                lpromises.push(new $.Deferred());
+                lpromises.push(new $.Deferred());
+                get_article_data(new_nodes[i].title, lresults, lpromises[2*i], lpromises[(2*i)+1]);
             }
+
+            $.when.apply($, lpromises).done(function () {
+                lgraph = generate_article_graph_data(article, lresults, nodes.filter(x => x.group != 1), 0, false);
+
+                links = links.concat(lgraph[1])
+
+                og_node = nodes.findIndex(x => x.title == article);
+
+                if (og_node == -1) {
+                    nodes.push(new_article_node);
+                } else {
+                    nodes[og_node].group = 1;
+                }
+
+                var outnodes = get_set_from_nodes(nodes);
+                outnodes.push({"MARKER": 12345});
+                console.log(outnodes)
+                var outlinks = get_set_from_links(inlinks.concat(links))
+
+                callback(outnodes, outlinks)
+
+            });
+        });
+
+        function get_internal_links(jsondata, nodes, name, is_to) {
+            var nlinks = []
+            for (var j = 0; j < jsondata.length; j++) {
+                var index = nodes.findIndex(x => x.title == jsondata[j].name)
+                if (index != -1) {
+                    nlinks.push({"source": (is_to) ? name : jsondata[j].name, "target": (is_to) ? jsondata[j].name : name, "value": get_weight(jsondata[j].num_refs)});
+                }
+            }
+            return nlinks
         }
-        return nlinks
+
+
+
+        function generate_article_graph_data(article, data, nodes, nnum, should_nodes) {
+            var nnodes = [];
+            var nlinks = [];
+            if (should_nodes) {
+                for (var j = 0; j < data.length; j++) {
+                    nnodes = nnodes.concat(
+                        data[j].result.map(x => ({"title": x.name, "group": 0, "weight": x.num_refs}))
+                    );
+                }
+            }
+
+            nnodes = nnodes.sort((a,b) => b.weight - a.weight).slice(0, nnum)
+
+            for (var i = 0; i < data.length; i++) {
+                nlinks = nlinks.concat(get_internal_links(data[i].result, nnodes.concat(nodes), data[i].name, data[i].is_to));
+            }
+            return [nnodes, nlinks];
+        }
+
+        function get_article_data(article, results, promise_to, promise_from) {
+            $.ajax({
+                "url": url + "/api/clickstream/to/" + article,
+                "success": function(n) {
+                    results.push({"result": n, "is_to": true, "name": article});
+                    promise_to.resolve();
+                }
+            });
+            $.ajax({
+                "url": url + "/api/clickstream/from/" + article,
+                "success": function(n) {
+                    results.push({"result": n, "is_to": false, "name": article});
+                    promise_from.resolve();
+                }
+            });
+        }
     }
 
-    $.when.apply($, promises).done( function() {
-        var new_links = []
-        for (var i = 0; i < results.length; i++) {
-            console.log("Found links for " + results[i].name)
-            console.log(results[i])
-            var jsondata = results[i].result
-            new_links = new_links.concat(get_internal_links(jsondata, master_nodes, results[i].name, results[i].is_to));
-        }
-        master_links = master_links.concat(new_links.sort((a,b) => b.value - a.value).slice(0, 20));
+    function xor(a, b) {
+        return (a || b) && !(a && b);
+    }
 
-        console.log("About to finish doing stuff")
+    function trim_graph(mnodes, mlinks, ncn) {
 
-        finish_doing_stuff();
-    });
+        var safe_nodes = mnodes.filter(x => x.group == 1);
+        var risk_nodes = mnodes.filter(x => x.group != 1);
 
-    function finish_doing_stuff()
+        var safe_links = mlinks.filter(x => mnodes.find(y => y.title == (x.source.title || x.source)).group == 1 && mnodes.find(y => y.title == (x.target.title || x.target)).group == 1);
+        var risk_links = mlinks.filter(x => xor(mnodes.find(y => y.title == (x.source.title || x.source)).group == 1, mnodes.find(y => y.title == (x.target.title || x.target)).group == 1));
+        var intr_links = mlinks.filter(x => mnodes.find(y => y.title == (x.source.title || x.source)).group != 1 && mnodes.find(y => y.title == (x.target.title || x.target)).group != 1);
+
+        var top_risk_links = risk_links.sort((a,b) => b.value - a.value).slice(0, ncn);
+
+        var top_risk_nodes = top_risk_links.map(x => (safe_nodes.findIndex(y => y.title == (x.source.title || x.source)) == -1) ? risk_nodes.find(z => z.title == (x.source.title || x.source))
+                                                                                                                          : risk_nodes.find(z => z.title == (x.target.title || x.target)));
+
+        var valid_intr_links = intr_links.filter(x => top_risk_nodes.findIndex(y => y.title == (x.source.title || x.source)) != -1 &&
+                                                      top_risk_nodes.findIndex(y => y.title == (x.target.title || x.target)) != -1);
+        var top_intr_links = valid_intr_links.sort((a,b) => b.value - a.value).slice(0, ncn);
+
+        return [get_set_from_nodes(safe_nodes.concat(top_risk_nodes)), get_set_from_links(safe_links.concat(top_risk_links).concat(top_intr_links))];
+    }
+
+    var margin = {top: 20, right: 20, bottom: 20, left: 10},
+	      width = window.innerWidth - margin.left - margin.right,
+	      height = window.innerHeight - margin.top - margin.bottom;
+
+	var svg = d3.select("#chart").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+    var is_context_menu_showing = false;
+
+    var simulation = d3.forceSimulation()
+        .force("link", d3.forceLink().id(function(d) { return d.title; }))
+        .force("charge", d3.forceManyBody())
+        .force("center", d3.forceCenter(width / 2, height / 2));
+
+    simulation.force("charge").strength(-1 * Math.min(width, height))
+
+    var link = svg.append("g")
+        .attr("class", "links")
+        .selectAll("line")
+
+    var node = svg.append("g")
+        .attr("class", "nodes")
+        .selectAll("circle");
+
+    num_core_nodes += 1;
+    add_new_article(master_nodes, master_links, starticle, node_num_algo(num_core_nodes), finish_doing_stuff);
+    var mygraph = {};
+
+    function finish_doing_stuff(ooga_nodes, booga_links)
     {
-        console.log("Finishing doing stuff")
-        master_nodes.push({"id": starticle, "group": 1})
+        console.log(master_nodes)
 
-        var mygraph = {};
-        mygraph.nodes = master_nodes;
-        mygraph.links = master_links;
+        var trimmed = trim_graph(master_nodes.concat(ooga_nodes), master_links.concat(booga_links), node_num_algo(num_core_nodes));
+
+        master_nodes = trimmed[0];
+        master_links = trimmed[1];
+        mygraph.nodes = Object.assign([], master_nodes);
+        mygraph.links = Object.assign([], master_links);
 
         console.log(mygraph)
 
-    	var margin = {top: 20, right: 20, bottom: 20, left: 10},
-    	      width = window.innerWidth - margin.left - margin.right,
-    	      height = window.innerHeight - margin.top - margin.bottom;
+        restart();
+    }
 
-    	var svg = d3.select("#chart").append("svg")
-            .attr("width", width)
-            .attr("height", height);
-
-        var color = d3.scaleOrdinal(d3.schemeCategory20);
-
-        var simulation = d3.forceSimulation()
-            .force("link", d3.forceLink().id(function(d) { return d.id; }))
-            .force("charge", d3.forceManyBody())
-            .force("center", d3.forceCenter(width / 2, height / 2));
-
-        simulation.force("charge").strength(-1 * Math.min(width, height))
-
-      var link = svg.append("g")
-          .attr("class", "links")
-        .selectAll("line")
-        .data(mygraph.links)
-        .enter().append("line")
-          .attr("stroke-width", function(d) { return (d.value); });
-
-      var node = svg.append("g")
-          .attr("class", "nodes")
-        .selectAll("circle")
-        .data(mygraph.nodes)
-        .enter().append("g")
-        .call(d3.drag()
-              .on("start", dragstarted)
-              .on("drag", dragged)
-              .on("end", dragended));
-
+    function restart() {
+        node = node.data(mygraph.nodes);
+        node.exit().remove();
+        node = node.enter().append("g")
+            .on('contextmenu', function(d, i ) {
+                d3.event.preventDefault();
+                num_core_nodes += 1;
+                add_new_article(master_nodes, master_links, d.title, node_num_algo(num_core_nodes), finish_doing_stuff);
+            })
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
         node.append("circle")
           .attr("r", 5)
           .attr("fill", function(d) {return color(d.group)} );
@@ -181,14 +277,20 @@
         node.append("text")
             .attr("dx", 12)
             .attr("dy", ".35em")
-            .text(function(d) { return d.id.replace(/_/g, ' ') });
+            .text(function(d) { return d.title.replace(/_/g, ' ') });
 
-      simulation
-          .nodes(mygraph.nodes)
-          .on("tick", ticked);
+        link = link.data(mygraph.links);
+        link.exit().remove();
+        link = link.enter().append("line")
+            .attr("stroke-width", function(d) { return (d.value); });
 
-      simulation.force("link")
-          .links(mygraph.links);
+        simulation
+            .nodes(mygraph.nodes)
+            .on("tick", ticked);
+        simulation.force("link")
+            .links(mygraph.links);
+        simulation.alpha(1).restart();
+    }
 
     function ticked() {
         link
@@ -221,7 +323,6 @@
           d.fx = null;
           d.fy = null;
         }
-   }
 
 
 	</script>
