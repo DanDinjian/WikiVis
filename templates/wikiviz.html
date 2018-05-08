@@ -19,8 +19,20 @@
 }
 
 #heading {
+    position: fixed;
+    margin-left: 15%;
     display: inline-block;
-    width: 100%;
+    width: 50%;
+}
+
+#search-bar1 {
+    position: fixed;
+    top:0;
+    width:525%;
+    margin-left: 9%;
+
+    margin-right: 35%;
+       
 }
 
 .nodes circle {
@@ -44,7 +56,8 @@
 #side_menu {
     position: fixed;
     width: 25%;
-    top: 0;
+    overflow-y: scroll;
+    top: 25%;
     margin-left: 5%;
     border-left: 1px dashed;
     /* vertical-align: 0%; */
@@ -89,6 +102,13 @@
     user-select: none;
 }
 
+#article{
+    border-radius: 8px;
+    background-color: white;
+    border: 1px solid lightgrey;
+    padding:1% 1%;
+    height: 35px;
+}
 
 </style>
 
@@ -635,11 +655,10 @@
 
 {% block content %}
 
-<div id="heading"><h1 id="title1">Wikipedia Clicks & Hierarchies</h1></div>
-<div id="chart"></div>
-<div id="side_menu">
-    <form action="/wikiviz" method="post">
-        <div class="form-group1">
+<span id="heading"><header> <h1 id="title1">Wikipedia Clicks & Hierarchies</h1> </header>
+    <div id="search-bar">
+    <form action="/wikiviz" method="post" id="search-bar1">
+        <div class="form-group1" >
             {{ form.csrf }}
 
             <!-- <div type="search" placeholder="search another page" class="form-control" id="wikipage"> -->
@@ -649,7 +668,17 @@
             <br>
             <br>
         </div>
-    </form>
+        
+        </form>
+    </div>
+    
+    <hr>
+    </span>
+
+<div id="chart"></div>
+
+<div id="side_menu">
+
     <div id="article_list">
         <h3 id="title1"> Article List </h3>
 <!--     {% for result in results_to %}
@@ -660,5 +689,6 @@
     </div>
     <div id="wikidiv"></div>
 </div>
+
 
 {% endblock %}
