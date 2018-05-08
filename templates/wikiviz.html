@@ -44,7 +44,6 @@
 #side_menu {
     position: fixed;
     width: 25%;
-    overflow-y: scroll;
     top: 0;
     margin-left: 5%;
     border-left: 1px dashed;
@@ -53,13 +52,18 @@
     display: inline-block;
 }
 
+#article_list {
+    height: 35%;
+    overflow-y: scroll;
+}
+
 #side_menu form {
     align-content: center;
 }
 
-
-.wikipreview {
-    width:100%;
+#wikidiv {
+    height: 45%;
+    overflow-y: scroll;
 }
 
 .wikipreview p {
@@ -75,8 +79,14 @@
 }
 
 .wikipreview img {
-    width: 100%;
-    height: 200px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-height: 20vh;
+}
+
+.listgroup ul {
+    user-select: none;
 }
 
 
@@ -122,8 +132,8 @@
     var master_nodes = [];
     var master_links = [];
 
-    function get_weight(v) {
-        return Math.log(v);
+    function get_weight(v, l) {
+        return 2 * Math.log2(v);
     }
 
     function node_num_algo(n) {
@@ -134,14 +144,16 @@
     var raw_results_from = '{{ results_from |tojson}}'
     var starticle = '{{article}}'
 
+    var summary_url = "https://en.wikipedia.org/api/rest_v1/page/summary/";
+
     var results_to = JSON.parse(raw_results_to);
     var results_from = JSON.parse(raw_results_from);
 
     var url = location.origin
 
     function closure(i, callback) {
-        return function(n) {
-            return callback(i, n);
+        return function(m) {
+            return callback(i, m);
         }
     }
 
@@ -182,13 +194,29 @@
     }
 
     function add_new_article(innodes, inlinks, article, nnum, callback) {
-        var promises = [new $.Deferred(), new $.Deferred()];
+        article = article.replace(' ', '_');
+        var promises = [new $.Deferred(), new $.Deferred(), new $.Deferred()];
         var results = [];
+        var article_results = null;
         get_article_data(article, results, promises[0], promises[1]);
-
-        var new_article_node = {"title": article, "group": 1, "weight": 0};
+        $.ajax({
+            "url": summary_url + article,
+            "type": "GET",
+            "dataType": "json",
+            "contentType": "application/json",
+            "cache": false,
+            "success": closure(promises[2], function (promise, resp) {
+                article_results = resp;
+                promise.resolve();
+            }),
+            "error": closure(promises[2], function(promise, resp) {
+                article_results = {"displaytitle": "No preview available", "extract_html": "", "originalimage": {"source": ""}};
+                promise.resolve();
+            })
+        });
 
         $.when.apply($, promises).done(function () {
+            var new_article_node = {"title": article, "group": 1, "weight": 0, "summary": article_results };
             var ngraph = generate_article_graph_data(article, results, [new_article_node], nnum, true);
 
             var new_nodes = ngraph[0];
@@ -197,10 +225,27 @@
 
             var lpromises = [];
             var lresults = [];
+            var larresults = [];
             for (var i = 0; i < new_nodes.length; i++) {
                 lpromises.push(new $.Deferred());
                 lpromises.push(new $.Deferred());
-                get_article_data(new_nodes[i].title, lresults, lpromises[2*i], lpromises[(2*i)+1]);
+                lpromises.push(new $.Deferred());
+                get_article_data(new_nodes[i].title, lresults, lpromises[3*i], lpromises[(3*i)+1]);
+                $.ajax({
+                    "url": summary_url + new_nodes[i].title,
+                    "type": "GET",
+                    "dataType": "json",
+                    "contentType": "application/json",
+                    "cache": false,
+                    "success": closure([new_nodes[i].title, lpromises[(3*i)+2]], function (info, resp) {
+                        larresults.push({"title": info[0], "summary": resp});
+                        info[1].resolve();
+                    }),
+                    "error": closure([new_nodes[i].title, lpromises[(3*i)+2]], function(info, resp) {
+                        larresults.push({"title": info[0], "summary": {"displaytitle": "No preview available", "extract_html": "", "originalimage": {"source": ""}}});
+                        info[1].resolve();
+                    })
+               });
             }
 
             $.when.apply($, lpromises).done(function () {
@@ -208,6 +253,10 @@
 
                 var links = new_links.concat(lgraph[1]).concat(inlinks);
                 var nodes = new_nodes.concat(innodes);
+
+                larresults.forEach(function(x) {
+                    nodes.find(y => y.title == x.title).summary = x.summary;
+                });
 
                 var og_node = nodes.findIndex(x => x.title == article);
 
@@ -288,21 +337,28 @@
         //document.getElementById(d.title.replace(/\(|\)/g, "_")).style("fill", "green")
 
         var sheet = document.createElement('style')
-        var line = document.getElementById(d.title.replace(/\|\)/g, "_"));
+        var line = document.getElementById(d.title.replace(/\W+/g, "_"));
         if (!isElementInViewport(line)) {
             line.scrollIntoView();
         }
 
-        sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
         document.body.appendChild(sheet);
 
         // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
         // console.log("next is")
         // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
-        d3.select("#".concat(d.title.replace(/\(|\)/g, "_").concat("circle")))
+        var dnode = d3.select("#".concat(d.title.replace(/\W+/g, "_").concat("circle")));
+        dnode
             .transition()
             .duration(250)
-            .style("fill", "green")
+            .style("fill", "green");
+
+        d3.select("#wikidiv").selectAll("*").remove();
+        var preview = d3.select("#wikidiv").append("div").attr("class", "wikipreview");
+        preview.append("h4").html(dnode.datum().summary.displaytitle);
+        preview.append("img").attr("src", dnode.datum().summary.originalimage.source);
+        preview.append("p").html(dnode.datum().summary.extract_html);
     }
     function unhover(d){
         // console.log("HOVER")
@@ -310,13 +366,13 @@
         // console.log(d.title)
 
         var sheet = document.createElement('style')
-        sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
         document.body.appendChild(sheet);        
 
         // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
         // console.log("next is")
         // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
-        d3.select("#".concat(d.title.replace(/\(|\)/g, "_").concat("circle")))
+        d3.select("#".concat(d.title.replace(/\W+/g, "_").concat("circle")))
             .transition()
             .duration(250)
             .style("fill", color(d.group))
@@ -330,11 +386,13 @@
     }
 
     function trim_graph(mnodes, mlinks, ncn) {
-        mnodes = get_set_from_nodes(mnodes);
         mlinks = get_set_from_links(mlinks);
 
         var safe_nodes = mnodes.filter(x => x.group == 1);
+        safe_nodes = get_set_from_nodes(safe_nodes);
+
         var risk_nodes = mnodes.filter(x => safe_nodes.findIndex(y => y.title == x.title) == -1);
+        risk_nodes = get_set_from_nodes(risk_nodes);
 
         var safe_links = mlinks.filter(x => mnodes.find(y => y.title == get_source(x)).group == 1 && mnodes.find(y => y.title == get_target(x)).group == 1);
         var risk_links = mlinks.filter(x => xor(mnodes.find(y => y.title == get_source(x)).group == 1, mnodes.find(y => y.title == get_target(x)).group == 1));
@@ -399,7 +457,7 @@
     var margin = {top: 20, right: 20, bottom: 20, left: 10},
           width = window.innerWidth*.8 - margin.left - margin.right,
           height = window.innerHeight - margin.top - margin.bottom,
-          radius = 15;
+          radius = 5;
 
     var svg = d3.select("#chart").append("svg")
         .attr("width", width)
@@ -480,9 +538,9 @@
             // .attr("id", function(d) {return d.title.replace(/\(|\)/g, "_")});
 
         node.append("circle")
-          .attr("r", radius)
+          .attr("r", function(d) { var t = links.find(x => get_source(x) == d.title || get_target(x) == d.title); return radius + (t ? t.value : -radius) })
           .attr("fill", function(d) {return color(d.group)} )
-          .attr("id", function(d) {return d.title.replace(/\(|\)/g, "_").concat("circle")})
+          .attr("id", function(d) {return d.title.replace(/\W+/g, "_").concat("circle")})
           .on("mouseover", hover)
           .on("mouseout", unhover);
 
@@ -504,7 +562,7 @@
         document.getElementById('article_list').innerHTML = "<ul class=\"list-group\">"
         // document.getElementsByClassName("fnode").length
         for (var i = 0; i < nodes.length; i++){
-            document.getElementById('article_list').innerHTML += "<li class=\"list-group-item\" id=\"" + mygraph.nodes[i].title.replace(/\(|\)/g, "_") + "\">" + mygraph.nodes[i].title.replace(/_/g, ' ') + "</li>";
+            document.getElementById('article_list').innerHTML += "<li class=\"list-group-item\" id=\"" + mygraph.nodes[i].title.replace(/\W+/g, "_") + "\">" + mygraph.nodes[i].title.replace(/_/g, ' ') + "</li>";
     }
         document.getElementById('article_list').innerHTML += "</ul> <br>"
 */
@@ -518,7 +576,7 @@
         for (var i = 0; i < sortednodes.length; i++) {
             listelem.append("li")
                 .attr("class", "list-group-item")
-                .attr("id", sortednodes[i].title.replace(/\(|\)/g, "_"))
+                .attr("id", sortednodes[i].title.replace(/\W+/g, "_"))
                 .text(sortednodes[i].title.replace(/_/g, ' '))
                 .on("mouseover", closure(sortednodes[i], function(n) { return hover(n) }))
                 .on("mouseout", closure(sortednodes[i], function(n) { return unhover(n) }))
@@ -600,22 +658,7 @@
     <br>
     {% endfor %} -->
     </div>
-    <div id="wikidiv">
-        <div class="wikipreview">
-            <h4>Political philosophy</h4>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/9/98/Sanzio_01_Plato_Aristotle.jpg"></img>
-            <p><b>Political philosophy</b>, or <b>political theory</b>, is the study of topics such as politics, liberty, justice, property, rights, law, and the enforcement of laws by authority: what they are, why they are needed, what, if anything, makes a government legitimate, what rights and freedoms it should protect and why, what form it should take and why, what the law is, and what duties citizens owe to a legitimate government, if any, and when it may be legitimately overthrown, if ever.</p>
-            <hr>
-        </div>
-
-        <div class="wikipreview">
-            <h4>Individualist anarchism</h4>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Anarchy-symbol.svg"></img>
-            <p><b>Individualist anarchism</b> refers to several traditions of thought within the anarchist movement that emphasize the individual and their will over external determinants such as groups, society, traditions and ideological systems. Individualist anarchism is not a single philosophy but refers to a group of individualistic philosophies that sometimes are in conflict. Benjamin Tucker, a famous 19th century individualist anarchist, held that &quot;if the individual has the right to govern himself, all external government is tyranny&quot;.</p>
-            <hr>
-        </div>
-
-    </div>
+    <div id="wikidiv"></div>
 </div>
 
 {% endblock %}
