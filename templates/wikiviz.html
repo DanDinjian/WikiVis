@@ -160,13 +160,25 @@
         });
     };
 
+    function isElementInViewport (el) {
+
+        var rect = el.getBoundingClientRect();
+
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && /*or $(window).height() */
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth) /*or $(window).width() */
+        );
+    }
+
     function get_set_from_nodes(array) {
         var outarr = array.filter((v,i,a) => a.findIndex(x => x.title == v.title) == i);
         return outarr
     }
 
     function get_set_from_links(array) {
-        return array.filter((v,i,a) => a.findIndex(x => (x.source.id || x.source) == (v.source.id || v.source) && (x.target.id || x.target) == (v.target.id || v.target)) == i);
+        return array.filter((v,i,a) => a.findIndex(x => get_source(x) == get_source(v) && get_target(x) == get_target(v)) == i);
     }
 
     function add_new_article(innodes, inlinks, article, nnum, callback) {
@@ -276,6 +288,11 @@
         //document.getElementById(d.title.replace(/\(|\)/g, "_")).style("fill", "green")
 
         var sheet = document.createElement('style')
+        var line = document.getElementById(d.title.replace(/\|\)/g, "_"));
+        if (!isElementInViewport(line)) {
+            line.scrollIntoView();
+        }
+
         sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
         document.body.appendChild(sheet);
 
@@ -313,6 +330,9 @@
     }
 
     function trim_graph(mnodes, mlinks, ncn) {
+        mnodes = get_set_from_nodes(mnodes);
+        mlinks = get_set_from_links(mlinks);
+
         var safe_nodes = mnodes.filter(x => x.group == 1);
         var risk_nodes = mnodes.filter(x => safe_nodes.findIndex(y => y.title == x.title) == -1);
 
@@ -386,6 +406,8 @@
         .attr("height", height)
         .attr("id", "container");
 
+    var list = d3.select("#article_list")
+
     var color = d3.scaleOrdinal(d3.schemeCategory20);
 
     var loadicon = loader({"width": width, "height": height, "radius": Math.min(width, height) / 4, "container": "#container", "id": "loader"});
@@ -423,6 +445,12 @@
         mygraph.nodes = trimmed[0];
         mygraph.links = trimmed[1];
 
+/*
+        mygraph.nodes.forEach(function(x) {
+            list.append("strong")
+                .text(x.title);
+        });
+*/
         restart(mygraph.nodes, mygraph.links);
     }
 
@@ -458,11 +486,6 @@
           .on("mouseover", hover)
           .on("mouseout", unhover);
 
-        node.append("text")
-            .attr("dx", 12)
-            .attr("dy", ".35em")
-            .text(function(d) { return d.title.replace(/_/g, ' ') });
-
         link = link.exit().remove();
         link = link.data(links).enter().append("line")
             .attr("stroke-width", function(d) { return (d.value); })
@@ -475,30 +498,51 @@
 
         simulation.alpha(1).restart();
 
+/*
         // document.getElementById('article_list').innerHTML = " <strong> Article List <strong> ";
         console.log(document.getElementsByClassName("fnode").length)
-        document.getElementById('article_list').innerHTML += "<ul class=\"list-group\">"
+        document.getElementById('article_list').innerHTML = "<ul class=\"list-group\">"
         // document.getElementsByClassName("fnode").length
-        for (var i = 0; i < mygraph['nodes'].length; i++){
+        for (var i = 0; i < nodes.length; i++){
             document.getElementById('article_list').innerHTML += "<li class=\"list-group-item\" id=\"" + mygraph.nodes[i].title.replace(/\(|\)/g, "_") + "\">" + mygraph.nodes[i].title.replace(/_/g, ' ') + "</li>";
     }
         document.getElementById('article_list').innerHTML += "</ul> <br>"
+*/
+        var alist = d3.select("#article_list");
+        alist.selectAll("*").remove();
+        var listelem = alist.append("ul")
+            .attr("class", "list-group");
 
+        var sortednodes = nodes.sort((a,b) => a.title.localeCompare(b.title));
+
+        for (var i = 0; i < sortednodes.length; i++) {
+            listelem.append("li")
+                .attr("class", "list-group-item")
+                .attr("id", sortednodes[i].title.replace(/\(|\)/g, "_"))
+                .text(sortednodes[i].title.replace(/_/g, ' '))
+                .on("mouseover", closure(sortednodes[i], function(n) { return hover(n) }))
+                .on("mouseout", closure(sortednodes[i], function(n) { return unhover(n) }))
+                .on('contextmenu', closure(sortednodes[i], function(d) {
+                    d3.event.preventDefault();
+                    num_core_nodes += 1;
+                    add_new_article(nodes, links, d.title, node_num_algo(num_core_nodes), finish_doing_stuff);
+                    var spinner = d3.select("#loader");
+                    spinner.moveToFront();
+                    spinner.style("opacity", 1);
+                }));
+       }
     }
 
     function ticked() {
-        link
+       node
+            .attr("transform", function(d) { return "translate(" + Math.max(radius, Math.min(width - radius, d.x)) + "," + Math.max(radius, Math.min(height - radius, d.y)) + ")"; });
+
+       link
             .attr("x1", function(d) { return d.source.x; })
             .attr("y1", function(d) { return d.source.y; })
             .attr("x2", function(d) { return d.target.x; })
             .attr("y2", function(d) { return d.target.y; });
 
-/*        node
-            .attr("cx", function(d) { return d.x; })
-            .attr("cy", function(d) { return d.y; });
-*/
-        node
-            .attr("transform", function(d) { return "translate(" + Math.max(radius, Math.min(width - radius, d.x)) + "," + Math.max(radius, Math.min(height - radius, d.y)) + ")"; });
       }
 
         function dragstarted(d) {
