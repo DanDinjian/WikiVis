@@ -83,7 +83,7 @@
 <script>
 
     /* For Getting WikiPreview Data
-     * 
+     *
      * article_link = "https://en.wikipedia.org/api/rest_v1/page/summary/" + Political_philosophy (article name)
 
     article_link = "https://en.wikipedia.org/api/rest_v1/page/summary/Individualist_anarchism"
@@ -142,6 +142,21 @@
             return callback(i, n);
         }
     }
+
+    d3.selection.prototype.moveToFront = function() {
+      return this.each(function(){
+        this.parentNode.appendChild(this);
+      });
+    };
+
+    d3.selection.prototype.moveToBack = function() {
+        return this.each(function() {
+            var firstChild = this.parentNode.firstChild;
+            if (firstChild) {
+                this.parentNode.insertBefore(this, firstChild);
+            }
+        });
+    };
 
     function get_set_from_nodes(array) {
         var outarr = array.filter((v,i,a) => a.findIndex(x => x.title == v.title) == i);
@@ -251,29 +266,6 @@
         return (a || b) && !(a && b);
     }
 
-/*
-    function trim_graph(mnodes, mlinks, ncn) {
-
-        var safe_nodes = mnodes.filter(x => x.group == 1);
-        var risk_nodes = mnodes.filter(x => x.group != 1);
-
-        var safe_links = mlinks.filter(x => mnodes.find(y => y.title == (x.source.title || x.source)).group == 1 && mnodes.find(y => y.title == (x.target.title || x.target)).group == 1);
-        var risk_links = mlinks.filter(x => xor(mnodes.find(y => y.title == (x.source.title || x.source)).group == 1, mnodes.find(y => y.title == (x.target.title || x.target)).group == 1));
-        var intr_links = mlinks.filter(x => mnodes.find(y => y.title == (x.source.title || x.source)).group != 1 && mnodes.find(y => y.title == (x.target.title || x.target)).group != 1);
-
-        var top_risk_links = risk_links.sort((a,b) => b.value - a.value).slice(0, ncn);
-
-        var top_risk_nodes = top_risk_links.map(x => (safe_nodes.findIndex(y => y.title == (x.source.title || x.source)) == -1) ? risk_nodes.find(z => z.title == (x.source.title || x.source))
-                                                                                                                          : risk_nodes.find(z => z.title == (x.target.title || x.target)));
-
-        var valid_intr_links = intr_links.filter(x => top_risk_nodes.findIndex(y => y.title == (x.source.title || x.source)) != -1 &&
-                                                      top_risk_nodes.findIndex(y => y.title == (x.target.title || x.target)) != -1);
-        var top_intr_links = valid_intr_links.sort((a,b) => b.value - a.value).slice(0, ncn);
-
-        return [get_set_from_nodes(safe_nodes.concat(top_risk_nodes)), get_set_from_links(safe_links.concat(top_risk_links).concat(top_intr_links))];
-    }
-*/
-
     function get_source(weird) {
         return weird.source.title || weird.source;
     }
@@ -300,17 +292,66 @@
         return [safe_nodes.concat(top_risk_nodes), safe_links.concat(top_risk_links).concat(top_intr_links)];
     }
 
+    function loader(config) {
+      return function() {
+        var radius = config.radius;
+        var tau = 2 * Math.PI;
+
+        var arc = d3.arc()
+                .innerRadius(radius*0.5)
+                .outerRadius(radius*0.9)
+                .startAngle(0);
+
+        var svg = d3.select(config.container).append("g")
+            .attr("id", config.id)
+            .attr("transform", "translate(" + config.width / 2 + "," + config.height / 2 + ")")
+
+        var backdrop = svg.append("rect")
+            .attr("x", -config.width / 2).attr("y", -config.height / 2)
+            .attr("width", config.width).attr("height", config.height)
+            .style("fill", "white").style("opacity", 0.5);
+
+        var background = svg.append("path")
+                .datum({endAngle: 0.33*tau})
+                .style("fill", "#4D4D4D")
+                .attr("d", arc)
+                .call(spin, 1500)
+
+        function spin(selection, duration) {
+            selection.transition()
+                .ease(d3.easeLinear)
+                .duration(duration)
+                .attrTween("transform", function() {
+                    return d3.interpolateString("rotate(0)", "rotate(360)");
+                });
+
+            setTimeout(function() { spin(selection, duration); }, duration);
+        }
+
+        function transitionFunction(path) {
+            path.transition()
+                .duration(7500)
+                .attrTween("stroke-dasharray", tweenDash)
+                .each("end", function() { d3.select(this).call(transition); });
+        }
+
+      };
+    }
+
     var margin = {top: 20, right: 20, bottom: 20, left: 10},
 	      width = window.innerWidth*.8 - margin.left - margin.right,
-	      height = window.innerHeight - margin.top - margin.bottom;
+	      height = window.innerHeight - margin.top - margin.bottom,
+          radius = 15;
 
 	var svg = d3.select("#chart").append("svg")
         .attr("width", width)
-        .attr("height", height);
+        .attr("height", height)
+        .attr("id", "container");
 
     var color = d3.scaleOrdinal(d3.schemeCategory20);
 
-    var is_context_menu_showing = false;
+    var loadicon = loader({"width": width, "height": height, "radius": Math.min(width, height) / 4, "container": "#container", "id": "loader"});
+    loadicon();
 
     var simulation = d3.forceSimulation()
         .force("link", d3.forceLink().id(function(d) { return d.title; }))
@@ -334,13 +375,15 @@
 
     function finish_doing_stuff(ooga_nodes, booga_links)
     {
-        console.log(ooga_nodes)
+        var spinner = d3.select("#loader");
+        spinner.moveToBack();
+        spinner.style("opacity", 0);
 
         var trimmed = trim_graph(ooga_nodes, booga_links, node_num_algo(num_core_nodes));
 
         mygraph.nodes = trimmed[0];
         mygraph.links = trimmed[1];
-       
+
         restart(mygraph.nodes, mygraph.links);
     }
 
@@ -349,11 +392,7 @@
         d3.selectAll(".fnode").remove();
         d3.selectAll(".flink").remove();
 
-        console.log(nodes)
         nodes.forEach(function(v) { delete v.x; delete v.y; });
-
-        console.log(node)
-        console.log(link)
 
         node = node.exit().remove();
         node = node.data(nodes).enter().append("g")
@@ -361,6 +400,9 @@
                 d3.event.preventDefault();
                 num_core_nodes += 1;
                 add_new_article(nodes, links, d.title, node_num_algo(num_core_nodes), finish_doing_stuff);
+                var spinner = d3.select("#loader");
+                spinner.moveToFront();
+                spinner.style("opacity", 1);
             })
             .call(d3.drag()
                 .on("start", dragstarted)
@@ -369,7 +411,7 @@
             .attr("class", "fnode");
 
         node.append("circle")
-          .attr("r", 15)
+          .attr("r", radius)
           .attr("fill", function(d) {return color(d.group)} );
 
         node.append("text")
@@ -402,7 +444,7 @@
             .attr("cy", function(d) { return d.y; });
 */
         node
-            .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+            .attr("transform", function(d) { return "translate(" + Math.max(radius, Math.min(width - radius, d.x)) + "," + Math.max(radius, Math.min(height - radius, d.y)) + ")"; });
       }
 
         function dragstarted(d) {
