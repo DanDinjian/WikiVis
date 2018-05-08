@@ -14,7 +14,7 @@
     <script type="text/javascript">
     $(document).ready(function(){
     $("#article").autocomplete({
-        source: function(request, response) {
+		source: function(request, response) {
             $.ajax({
                 url: "http://en.wikipedia.org/w/api.php",
                 dataType: "jsonp",
@@ -24,8 +24,10 @@
                     'search': request.term
                 },
                 success: function(data) {
+					console.log(data[1])
                     response(data[1]);
                 }
+				//,dataType: "text"
             });
         }
     });
