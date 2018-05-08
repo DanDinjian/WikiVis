@@ -268,28 +268,6 @@
         return (a || b) && !(a && b);
     }
 
-/*
-    function trim_graph(mnodes, mlinks, ncn) {
-
-        var safe_nodes = mnodes.filter(x => x.group == 1);
-        var risk_nodes = mnodes.filter(x => x.group != 1);
-
-        var safe_links = mlinks.filter(x => mnodes.find(y => y.title == (x.source.title || x.source)).group == 1 && mnodes.find(y => y.title == (x.target.title || x.target)).group == 1);
-        var risk_links = mlinks.filter(x => xor(mnodes.find(y => y.title == (x.source.title || x.source)).group == 1, mnodes.find(y => y.title == (x.target.title || x.target)).group == 1));
-        var intr_links = mlinks.filter(x => mnodes.find(y => y.title == (x.source.title || x.source)).group != 1 && mnodes.find(y => y.title == (x.target.title || x.target)).group != 1);
-
-        var top_risk_links = risk_links.sort((a,b) => b.value - a.value).slice(0, ncn);
-
-        var top_risk_nodes = top_risk_links.map(x => (safe_nodes.findIndex(y => y.title == (x.source.title || x.source)) == -1) ? risk_nodes.find(z => z.title == (x.source.title || x.source))
-                                                                                                                          : risk_nodes.find(z => z.title == (x.target.title || x.target)));
-
-        var valid_intr_links = intr_links.filter(x => top_risk_nodes.findIndex(y => y.title == (x.source.title || x.source)) != -1 &&
-                                                      top_risk_nodes.findIndex(y => y.title == (x.target.title || x.target)) != -1);
-        var top_intr_links = valid_intr_links.sort((a,b) => b.value - a.value).slice(0, ncn);
-
-        return [get_set_from_nodes(safe_nodes.concat(top_risk_nodes)), get_set_from_links(safe_links.concat(top_risk_links).concat(top_intr_links))];
-    }
-*/
     function hover(d){
         // console.log("HOVER")
         // console.log(d)
@@ -306,7 +284,7 @@
         // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
         d3.select("#".concat(d.title.replace(/\(|\)/g, "_").concat("circle")))
             .transition()
-            .duration(750)
+            .duration(250)
             .style("fill", "green")
     }
     function unhover(d){
@@ -323,7 +301,7 @@
         // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
         d3.select("#".concat(d.title.replace(/\(|\)/g, "_").concat("circle")))
             .transition()
-            .duration(750)
+            .duration(250)
             .style("fill", color(d.group))
     }
     function get_source(weird) {
@@ -400,7 +378,8 @@
 
     var margin = {top: 20, right: 20, bottom: 20, left: 10},
           width = window.innerWidth*.8 - margin.left - margin.right,
-          height = window.innerHeight - margin.top - margin.bottom;
+          height = window.innerHeight - margin.top - margin.bottom,
+          radius = 15;
 
     var svg = d3.select("#chart").append("svg")
         .attr("width", width)
