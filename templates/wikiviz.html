@@ -36,16 +36,17 @@
 
 #chart {
     /* position: fixed; */
-    width: 80%;
+    width: 70%;
     display: inline-block;
     height: 100%;
 }
 
 #side_menu {
     position: fixed;
-    width: 19%;
+    width: 25%;
     overflow-y: scroll;
     top: 0;
+    margin-left: 5%;
     border-left: 1px dashed;
     /* vertical-align: 0%; */
     bottom: 0;
@@ -77,6 +78,7 @@
     width: 100%;
     height: 200px;
 }
+
 
 </style>
 
@@ -273,7 +275,42 @@
         return [get_set_from_nodes(safe_nodes.concat(top_risk_nodes)), get_set_from_links(safe_links.concat(top_risk_links).concat(top_intr_links))];
     }
 */
+    function hover(d){
+        // console.log("HOVER")
+        // console.log(d)
+        // console.log(d.title)
 
+        //document.getElementById(d.title.replace(/\(|\)/g, "_")).style("fill", "green")
+
+        var sheet = document.createElement('style')
+        sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
+        document.body.appendChild(sheet);
+
+        // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
+        // console.log("next is")
+        // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
+        d3.select("#".concat(d.title.replace(/\(|\)/g, "_").concat("circle")))
+            .transition()
+            .duration(750)
+            .style("fill", "green")
+    }
+    function unhover(d){
+        // console.log("HOVER")
+        // console.log(d)
+        // console.log(d.title)
+
+        var sheet = document.createElement('style')
+        sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
+        document.body.appendChild(sheet);        
+
+        // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
+        // console.log("next is")
+        // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
+        d3.select("#".concat(d.title.replace(/\(|\)/g, "_").concat("circle")))
+            .transition()
+            .duration(750)
+            .style("fill", color(d.group))
+    }
     function get_source(weird) {
         return weird.source.title || weird.source;
     }
@@ -331,6 +368,7 @@
     num_core_nodes += 1;
     add_new_article(master_nodes, master_links, starticle, node_num_algo(num_core_nodes), finish_doing_stuff);
     var mygraph = {"nodes": [], "links": []};
+    console.log(mygraph)
 
     function finish_doing_stuff(ooga_nodes, booga_links)
     {
@@ -366,12 +404,16 @@
                 .on("start", dragstarted)
                 .on("drag", dragged)
                 .on("end", dragended))
-            .attr("class", "fnode")
-            .attr("id", function(d) { return d.title.replace(/_/g, ' ') });
+            .attr("class", "fnode");
+            // replace(/\(|\)/g, "_")
+            // .attr("id", function(d) {return d.title.replace(/\(|\)/g, "_")});
 
         node.append("circle")
           .attr("r", 15)
-          .attr("fill", function(d) {return color(d.group)} );
+          .attr("fill", function(d) {return color(d.group)} )
+          .attr("id", function(d) {return d.title.replace(/\(|\)/g, "_").concat("circle")})
+          .on("mouseover", hover)
+          .on("mouseout", unhover);
 
         node.append("text")
             .attr("dx", 12)
@@ -393,11 +435,11 @@
         // document.getElementById('article_list').innerHTML = " <strong> Article List <strong> ";
         console.log(document.getElementsByClassName("fnode").length)
         document.getElementById('article_list').innerHTML += "<ul class=\"list-group\">"
-        for (var i = 0; i < document.getElementsByClassName("fnode").length; i++){
-            console.log("IN LOOP")
-            document.getElementById('article_list').innerHTML += "<li class=\"list-group-item\">" + document.getElementsByClassName("fnode")[i].id + "</li>";
+        // document.getElementsByClassName("fnode").length
+        for (var i = 0; i < mygraph['nodes'].length; i++){
+            document.getElementById('article_list').innerHTML += "<li class=\"list-group-item\" id=\"" + mygraph.nodes[i].title.replace(/\(|\)/g, "_") + "\">" + mygraph.nodes[i].title.replace(/_/g, ' ') + "</li>";
     }
-        document.getElementById('article_list').innerHTML += "</ul>"
+        document.getElementById('article_list').innerHTML += "</ul> <br>"
 
     }
 
