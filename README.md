@@ -4,13 +4,13 @@ Welcome to WikiVis
 Getting Started:
     At this time, our website is hosted remotely and is blocked from
     interfacing with our server on Tufts campus, therefore it is necessary
-    to run remotely.
+    to run the website remotely.
 
     To run, ensure you have the necessary dependencies by running:
-        pip install -r requirements.txt
+     >> pip install -r requirements.txt
     
     Now, you should be set to spin up the server with python3:
-        python3 flaskserver.py
+     >> python3 flaskserver.py
 
     This should host a local server running on http://localhost:5000
 
@@ -36,6 +36,15 @@ Using the Vis:
     titles will cause you to autoscroll to the title and highlight the node and
     title's color.  Clicking on the node or title will allow you to view a
     preview of the related wikipedia page with a link to open it.
+
+Current bugs/next steps:
+    Right clicking an article now only displays that article's top links.
+    Can only look at one preview at a time
+    Nodes stay within bounding box but edges do not
+    Occasionally edges point to nodes that aren't there
+    No way to see to/from data, nor how many clicks in clickstream
+    No link in preview to the wikipedia page
+
 
 Get in touch!
     Thanks for your interest in our visualization, if you have any comments,
