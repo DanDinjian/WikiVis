@@ -46,6 +46,15 @@
 	margin: -1px;
 }
 
+.ui-menu-item:hover {
+	background-color: grey;
+	cursor: pointer;
+}
+
+.ui-helper-hidden-accessible {
+	color: white;
+}
+
 
 header{
 	font-weight: bold;
