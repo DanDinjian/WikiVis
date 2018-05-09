@@ -357,18 +357,18 @@
         //document.getElementById(d.title.replace(/\(|\)/g, "_")).style("fill", "green")
 
         var sheet = document.createElement('style')
-        var line = document.getElementById(d.title.replace(/\W+/g, "_"));
+        var line = document.getElementById(d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N"));
         if (!isElementInViewport(line)) {
             line.scrollIntoView();
         }
 
-        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
         document.body.appendChild(sheet);
 
         // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
         // console.log("next is")
         // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
-        var dnode = d3.select("#".concat(d.title.replace(/\W+/g, "_").concat("circle")));
+        var dnode = d3.select("#".concat(d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N").concat("circle")));
         dnode
             .transition()
             .duration(250)
@@ -386,13 +386,13 @@
         // console.log(d.title)
 
         var sheet = document.createElement('style')
-        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
         document.body.appendChild(sheet);        
 
         // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
         // console.log("next is")
         // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
-        d3.select("#".concat(d.title.replace(/\W+/g, "_").concat("circle")))
+        d3.select("#".concat(d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N").concat("circle")))
             .transition()
             .duration(250)
             .style("fill", color(d.group))
@@ -560,7 +560,7 @@
         node.append("circle")
           .attr("r", function(d) { var t = links.find(x => get_source(x) == d.title || get_target(x) == d.title); return radius + (t ? t.value : -radius) })
           .attr("fill", function(d) {return color(d.group)} )
-          .attr("id", function(d) {return d.title.replace(/\W+/g, "_").concat("circle")})
+          .attr("id", function(d) {return d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N").concat("circle")})
           .on("mouseover", hover)
           .on("mouseout", unhover);
 
@@ -596,7 +596,7 @@
         for (var i = 0; i < sortednodes.length; i++) {
             listelem.append("li")
                 .attr("class", "list-group-item")
-                .attr("id", sortednodes[i].title.replace(/\W+/g, "_"))
+                .attr("id", sortednodes[i].title.replace(/\W+/g, "_").replace(/[0-9]/g, "N"))
                 .text(sortednodes[i].title.replace(/_/g, ' '))
                 .on("mouseover", closure(sortednodes[i], function(n) { return hover(n) }))
                 .on("mouseout", closure(sortednodes[i], function(n) { return unhover(n) }))
