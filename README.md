@@ -1,26 +1,43 @@
-load data into file data/english-wiki-titles
-get title dump from http://dumps.wikimedia.org/enwiki/latest/enwiki-latest-all-titles-in-ns0.gz
+Welcome to WikiVis 
+    - a visualization tool for wikipedia article connectivity.
 
-load clickstream data into file data/2017_en_clickstream.tsv
-https://ndownloader.figshare.com/files/7563832
+Getting Started:
+    At this time, our website is hosted remotely and is blocked from
+    interfacing with our server on Tufts campus, therefore it is necessary
+    to run remotely.
 
-To change the database insertIntoDb.py references, update the first parameter of db.create_engine().
-The current database is hosted at: "postgres://vis:wikivis@130.64.128.179:5432"
-Username: "vis"
-Password: "wikivis"
+    To run, ensure you have the necessary dependencies by running:
+        pip install -r requirements.txt
+    
+    Now, you should be set to spin up the server with python3:
+        python3 flaskserver.py
 
-Three API paths:
-'/api/hierarchy/<aname>'
-    -- Gets Wikipedia's official list of related links for a given article
-    -- aname: name of the desired Wikipedia article
-    -- Returns a list of {'name': <article name>} objects
+    This should host a local server running on http://localhost:5000
 
-'/api/clickstream/from/<aname>'
-    -- Gets a list of all articles FROM which users traversed TO the given article
-    -- aname: name of the desired "destination" Wikipedia article
-    -- Returns a list of {'name': <article name>, 'num_refs': <number of times users followed this path>} objects
+    Now follow that link and you should see our website!
 
-'/api/clickstream/to<aname>'
-    -- Gets a list of all articles TO which users traversed FROM the given article
-    -- aname: name of the desired "source" Wikipedia article
-    -- Returns the same data type as the "from" path
+Using the Vis:
+    Our visualization is slightly performance heavy, but fun and fun-omenally
+    interesting. Start typing a wikipedia article name into our search bar
+    and select one of the drop down items to ensure you're spelling it
+    correctly.
+    
+    The loading gif will indicate to you that your visualization is loading,
+    so please be patient as it can take a while.  The nodes that appear are
+    the other articles most connected to that article.  The links represent
+    hyperlinks between articles and are shaded according to how many times
+    users have clicked between those two articles.  They currently do not show
+    the to/from because we wanted to cluster according to connectivity and that
+    can look much messier with arrows on the links.  By right clicking on a
+    node you can also load that nodes most connected articles into the vis.
+
+    Finally regard the side bar on your right.  On the top, there's an article
+    list that shows all the titles of the nodes.  Hovering over nodes or
+    titles will cause you to autoscroll to the title and highlight the node and
+    title's color.  Clicking on the node or title will allow you to view a
+    preview of the related wikipedia page with a link to open it.
+
+Get in touch!
+    Thanks for your interest in our visualization, if you have any comments,
+    questions, contributions, etc, definitely let me know!
+    daniel.dinjian@gmail.com

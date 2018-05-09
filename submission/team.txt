@@ -1,0 +1,6 @@
+Project Name: WikiVis
+
+Members:
+    Nikolas Shashok
+    Adrian Sharpe
+    Daniel Dinjian
