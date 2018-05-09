@@ -19,8 +19,20 @@
 }
 
 #heading {
+    position: fixed;
+    margin-left: 15%;
     display: inline-block;
-    width: 100%;
+    width: 50%;
+}
+
+#search-bar1 {
+    position: fixed;
+    top:0;
+    width:525%;
+    margin-left: 9%;
+
+    margin-right: 35%;
+       
 }
 
 .nodes circle {
@@ -44,8 +56,12 @@
 #side_menu {
     position: fixed;
     width: 25%;
-    overflow-y: scroll;
+<<<<<<< HEAD
     top: 0;
+=======
+    overflow-y: scroll;
+    top: 25%;
+>>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
     margin-left: 5%;
     border-left: 1px dashed;
     /* vertical-align: 0%; */
@@ -53,13 +69,18 @@
     display: inline-block;
 }
 
+#article_list {
+    height: 35%;
+    overflow-y: scroll;
+}
+
 #side_menu form {
     align-content: center;
 }
 
-
-.wikipreview {
-    width:100%;
+#wikidiv {
+    height: 45%;
+    overflow-y: scroll;
 }
 
 .wikipreview p {
@@ -75,10 +96,23 @@
 }
 
 .wikipreview img {
-    width: 100%;
-    height: 200px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-height: 20vh;
 }
 
+.listgroup ul {
+    user-select: none;
+}
+
+#article{
+    border-radius: 8px;
+    background-color: white;
+    border: 1px solid lightgrey;
+    padding:1% 1%;
+    height: 35px;
+}
 
 </style>
 
@@ -122,8 +156,8 @@
     var master_nodes = [];
     var master_links = [];
 
-    function get_weight(v) {
-        return Math.log(v);
+    function get_weight(v, l) {
+        return 2 * Math.log2(v);
     }
 
     function node_num_algo(n) {
@@ -134,14 +168,16 @@
     var raw_results_from = '{{ results_from |tojson}}'
     var starticle = '{{article}}'
 
+    var summary_url = "https://en.wikipedia.org/api/rest_v1/page/summary/";
+
     var results_to = JSON.parse(raw_results_to);
     var results_from = JSON.parse(raw_results_from);
 
     var url = location.origin
 
     function closure(i, callback) {
-        return function(n) {
-            return callback(i, n);
+        return function(m) {
+            return callback(i, m);
         }
     }
 
@@ -160,23 +196,51 @@
         });
     };
 
+    function isElementInViewport (el) {
+
+        var rect = el.getBoundingClientRect();
+
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && /*or $(window).height() */
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth) /*or $(window).width() */
+        );
+    }
+
     function get_set_from_nodes(array) {
         var outarr = array.filter((v,i,a) => a.findIndex(x => x.title == v.title) == i);
         return outarr
     }
 
     function get_set_from_links(array) {
-        return array.filter((v,i,a) => a.findIndex(x => (x.source.id || x.source) == (v.source.id || v.source) && (x.target.id || x.target) == (v.target.id || v.target)) == i);
+        return array.filter((v,i,a) => a.findIndex(x => get_source(x) == get_source(v) && get_target(x) == get_target(v)) == i);
     }
 
     function add_new_article(innodes, inlinks, article, nnum, callback) {
-        var promises = [new $.Deferred(), new $.Deferred()];
+        article = article.replace(' ', '_');
+        var promises = [new $.Deferred(), new $.Deferred(), new $.Deferred()];
         var results = [];
+        var article_results = null;
         get_article_data(article, results, promises[0], promises[1]);
-
-        var new_article_node = {"title": article, "group": 1, "weight": 0};
+        $.ajax({
+            "url": summary_url + article,
+            "type": "GET",
+            "dataType": "json",
+            "contentType": "application/json",
+            "cache": false,
+            "success": closure(promises[2], function (promise, resp) {
+                article_results = resp;
+                promise.resolve();
+            }),
+            "error": closure(promises[2], function(promise, resp) {
+                article_results = {"displaytitle": "No preview available", "extract_html": "", "originalimage": {"source": ""}};
+                promise.resolve();
+            })
+        });
 
         $.when.apply($, promises).done(function () {
+            var new_article_node = {"title": article, "group": 1, "weight": 0, "summary": article_results };
             var ngraph = generate_article_graph_data(article, results, [new_article_node], nnum, true);
 
             var new_nodes = ngraph[0];
@@ -185,10 +249,27 @@
 
             var lpromises = [];
             var lresults = [];
+            var larresults = [];
             for (var i = 0; i < new_nodes.length; i++) {
                 lpromises.push(new $.Deferred());
                 lpromises.push(new $.Deferred());
-                get_article_data(new_nodes[i].title, lresults, lpromises[2*i], lpromises[(2*i)+1]);
+                lpromises.push(new $.Deferred());
+                get_article_data(new_nodes[i].title, lresults, lpromises[3*i], lpromises[(3*i)+1]);
+                $.ajax({
+                    "url": summary_url + new_nodes[i].title,
+                    "type": "GET",
+                    "dataType": "json",
+                    "contentType": "application/json",
+                    "cache": false,
+                    "success": closure([new_nodes[i].title, lpromises[(3*i)+2]], function (info, resp) {
+                        larresults.push({"title": info[0], "summary": resp});
+                        info[1].resolve();
+                    }),
+                    "error": closure([new_nodes[i].title, lpromises[(3*i)+2]], function(info, resp) {
+                        larresults.push({"title": info[0], "summary": {"displaytitle": "No preview available", "extract_html": "", "originalimage": {"source": ""}}});
+                        info[1].resolve();
+                    })
+               });
             }
 
             $.when.apply($, lpromises).done(function () {
@@ -196,6 +277,10 @@
 
                 var links = new_links.concat(lgraph[1]).concat(inlinks);
                 var nodes = new_nodes.concat(innodes);
+
+                larresults.forEach(function(x) {
+                    nodes.find(y => y.title == x.title).summary = x.summary;
+                });
 
                 var og_node = nodes.findIndex(x => x.title == article);
 
@@ -268,30 +353,6 @@
         return (a || b) && !(a && b);
     }
 
-<<<<<<< HEAD
-=======
-/*
-    function trim_graph(mnodes, mlinks, ncn) {
-
-        var safe_nodes = mnodes.filter(x => x.group == 1);
-        var risk_nodes = mnodes.filter(x => x.group != 1);
-
-        var safe_links = mlinks.filter(x => mnodes.find(y => y.title == (x.source.title || x.source)).group == 1 && mnodes.find(y => y.title == (x.target.title || x.target)).group == 1);
-        var risk_links = mlinks.filter(x => xor(mnodes.find(y => y.title == (x.source.title || x.source)).group == 1, mnodes.find(y => y.title == (x.target.title || x.target)).group == 1));
-        var intr_links = mlinks.filter(x => mnodes.find(y => y.title == (x.source.title || x.source)).group != 1 && mnodes.find(y => y.title == (x.target.title || x.target)).group != 1);
-
-        var top_risk_links = risk_links.sort((a,b) => b.value - a.value).slice(0, ncn);
-
-        var top_risk_nodes = top_risk_links.map(x => (safe_nodes.findIndex(y => y.title == (x.source.title || x.source)) == -1) ? risk_nodes.find(z => z.title == (x.source.title || x.source))
-                                                                                                                          : risk_nodes.find(z => z.title == (x.target.title || x.target)));
-
-        var valid_intr_links = intr_links.filter(x => top_risk_nodes.findIndex(y => y.title == (x.source.title || x.source)) != -1 &&
-                                                      top_risk_nodes.findIndex(y => y.title == (x.target.title || x.target)) != -1);
-        var top_intr_links = valid_intr_links.sort((a,b) => b.value - a.value).slice(0, ncn);
-
-        return [get_set_from_nodes(safe_nodes.concat(top_risk_nodes)), get_set_from_links(safe_links.concat(top_risk_links).concat(top_intr_links))];
-    }
-*/
     function hover(d){
         // console.log("HOVER")
         // console.log(d)
@@ -300,16 +361,42 @@
         //document.getElementById(d.title.replace(/\(|\)/g, "_")).style("fill", "green")
 
         var sheet = document.createElement('style')
-        sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
+<<<<<<< HEAD
+        var line = document.getElementById(d.title.replace(/\W+/g, "_"));
+=======
+        console.log("IT is:" + d.title.replace(/\(|\)/g, "_"))
+        var line = document.getElementById(d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_"));
+        console.log(line)
+>>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
+        if (!isElementInViewport(line)) {
+            line.scrollIntoView();
+        }
+
+<<<<<<< HEAD
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
+=======
+        sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
+>>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
         document.body.appendChild(sheet);
 
         // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
         // console.log("next is")
         // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
-        d3.select("#".concat(d.title.replace(/\(|\)/g, "_").concat("circle")))
+<<<<<<< HEAD
+        var dnode = d3.select("#".concat(d.title.replace(/\W+/g, "_").concat("circle")));
+        dnode
+=======
+        d3.select("#".concat(d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_").concat("circle")))
+>>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
             .transition()
-            .duration(750)
-            .style("fill", "green")
+            .duration(250)
+            .style("fill", "green");
+
+        d3.select("#wikidiv").selectAll("*").remove();
+        var preview = d3.select("#wikidiv").append("div").attr("class", "wikipreview");
+        preview.append("h4").html(dnode.datum().summary.displaytitle);
+        preview.append("img").attr("src", dnode.datum().summary.originalimage.source);
+        preview.append("p").html(dnode.datum().summary.extract_html);
     }
     function unhover(d){
         // console.log("HOVER")
@@ -317,18 +404,25 @@
         // console.log(d.title)
 
         var sheet = document.createElement('style')
-        sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
+<<<<<<< HEAD
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
+=======
+        sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
+>>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
         document.body.appendChild(sheet);        
 
         // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
         // console.log("next is")
         // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
-        d3.select("#".concat(d.title.replace(/\(|\)/g, "_").concat("circle")))
+<<<<<<< HEAD
+        d3.select("#".concat(d.title.replace(/\W+/g, "_").concat("circle")))
+=======
+        d3.select("#".concat(d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_").concat("circle")))
+>>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
             .transition()
-            .duration(750)
+            .duration(250)
             .style("fill", color(d.group))
     }
->>>>>>> 81460bbcca76dd9717cb9b82ac4035d65de5552d
     function get_source(weird) {
         return weird.source.title || weird.source;
     }
@@ -338,8 +432,13 @@
     }
 
     function trim_graph(mnodes, mlinks, ncn) {
+        mlinks = get_set_from_links(mlinks);
+
         var safe_nodes = mnodes.filter(x => x.group == 1);
+        safe_nodes = get_set_from_nodes(safe_nodes);
+
         var risk_nodes = mnodes.filter(x => safe_nodes.findIndex(y => y.title == x.title) == -1);
+        risk_nodes = get_set_from_nodes(risk_nodes);
 
         var safe_links = mlinks.filter(x => mnodes.find(y => y.title == get_source(x)).group == 1 && mnodes.find(y => y.title == get_target(x)).group == 1);
         var risk_links = mlinks.filter(x => xor(mnodes.find(y => y.title == get_source(x)).group == 1, mnodes.find(y => y.title == get_target(x)).group == 1));
@@ -402,19 +501,16 @@
     }
 
     var margin = {top: 20, right: 20, bottom: 20, left: 10},
-<<<<<<< HEAD
-	      width = window.innerWidth*.8 - margin.left - margin.right,
-	      height = window.innerHeight - margin.top - margin.bottom,
-          radius = 15;
-=======
           width = window.innerWidth*.8 - margin.left - margin.right,
-          height = window.innerHeight - margin.top - margin.bottom;
->>>>>>> 81460bbcca76dd9717cb9b82ac4035d65de5552d
+          height = window.innerHeight - margin.top - margin.bottom,
+          radius = 5;
 
     var svg = d3.select("#chart").append("svg")
         .attr("width", width)
         .attr("height", height)
         .attr("id", "container");
+
+    var list = d3.select("#article_list")
 
     var color = d3.scaleOrdinal(d3.schemeCategory20);
 
@@ -453,6 +549,12 @@
         mygraph.nodes = trimmed[0];
         mygraph.links = trimmed[1];
 
+/*
+        mygraph.nodes.forEach(function(x) {
+            list.append("strong")
+                .text(x.title);
+        });
+*/
         restart(mygraph.nodes, mygraph.links);
     }
 
@@ -482,21 +584,15 @@
             // .attr("id", function(d) {return d.title.replace(/\(|\)/g, "_")});
 
         node.append("circle")
-<<<<<<< HEAD
-          .attr("r", radius)
-          .attr("fill", function(d) {return color(d.group)} );
-=======
-          .attr("r", 15)
+          .attr("r", function(d) { var t = links.find(x => get_source(x) == d.title || get_target(x) == d.title); return radius + (t ? t.value : -radius) })
           .attr("fill", function(d) {return color(d.group)} )
-          .attr("id", function(d) {return d.title.replace(/\(|\)/g, "_").concat("circle")})
+<<<<<<< HEAD
+          .attr("id", function(d) {return d.title.replace(/\W+/g, "_").concat("circle")})
+=======
+          .attr("id", function(d) {return d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_").concat("circle")})
+>>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
           .on("mouseover", hover)
           .on("mouseout", unhover);
->>>>>>> 81460bbcca76dd9717cb9b82ac4035d65de5552d
-
-        node.append("text")
-            .attr("dx", 12)
-            .attr("dy", ".35em")
-            .text(function(d) { return d.title.replace(/_/g, ' ') });
 
         link = link.exit().remove();
         link = link.data(links).enter().append("line")
@@ -510,30 +606,55 @@
 
         simulation.alpha(1).restart();
 
+/*
         // document.getElementById('article_list').innerHTML = " <strong> Article List <strong> ";
         console.log(document.getElementsByClassName("fnode").length)
-        document.getElementById('article_list').innerHTML += "<ul class=\"list-group\">"
+        document.getElementById('article_list').innerHTML = "<ul class=\"list-group\">"
         // document.getElementsByClassName("fnode").length
-        for (var i = 0; i < mygraph['nodes'].length; i++){
-            document.getElementById('article_list').innerHTML += "<li class=\"list-group-item\" id=\"" + mygraph.nodes[i].title.replace(/\(|\)/g, "_") + "\">" + mygraph.nodes[i].title.replace(/_/g, ' ') + "</li>";
+        for (var i = 0; i < nodes.length; i++){
+            document.getElementById('article_list').innerHTML += "<li class=\"list-group-item\" id=\"" + mygraph.nodes[i].title.replace(/\W+/g, "_") + "\">" + mygraph.nodes[i].title.replace(/_/g, ' ') + "</li>";
     }
         document.getElementById('article_list').innerHTML += "</ul> <br>"
+*/
+        var alist = d3.select("#article_list");
+        alist.selectAll("*").remove();
+        var listelem = alist.append("ul")
+            .attr("class", "list-group");
 
+        var sortednodes = nodes.sort((a,b) => a.title.localeCompare(b.title));
+
+        for (var i = 0; i < sortednodes.length; i++) {
+            listelem.append("li")
+                .attr("class", "list-group-item")
+<<<<<<< HEAD
+                .attr("id", sortednodes[i].title.replace(/\W+/g, "_"))
+=======
+                .attr("id", sortednodes[i].title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_"))
+>>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
+                .text(sortednodes[i].title.replace(/_/g, ' '))
+                .on("mouseover", closure(sortednodes[i], function(n) { return hover(n) }))
+                .on("mouseout", closure(sortednodes[i], function(n) { return unhover(n) }))
+                .on('contextmenu', closure(sortednodes[i], function(d) {
+                    d3.event.preventDefault();
+                    num_core_nodes += 1;
+                    add_new_article(nodes, links, d.title, node_num_algo(num_core_nodes), finish_doing_stuff);
+                    var spinner = d3.select("#loader");
+                    spinner.moveToFront();
+                    spinner.style("opacity", 1);
+                }));
+       }
     }
 
     function ticked() {
-        link
+       node
+            .attr("transform", function(d) { return "translate(" + Math.max(radius, Math.min(width - radius, d.x)) + "," + Math.max(radius, Math.min(height - radius, d.y)) + ")"; });
+
+       link
             .attr("x1", function(d) { return d.source.x; })
             .attr("y1", function(d) { return d.source.y; })
             .attr("x2", function(d) { return d.target.x; })
             .attr("y2", function(d) { return d.target.y; });
 
-/*        node
-            .attr("cx", function(d) { return d.x; })
-            .attr("cy", function(d) { return d.y; });
-*/
-        node
-            .attr("transform", function(d) { return "translate(" + Math.max(radius, Math.min(width - radius, d.x)) + "," + Math.max(radius, Math.min(height - radius, d.y)) + ")"; });
       }
 
         function dragstarted(d) {
@@ -568,11 +689,10 @@
 
 {% block content %}
 
-<div id="heading"><h1 id="title1">Wikipedia Clicks & Hierarchies</h1></div>
-<div id="chart"></div>
-<div id="side_menu">
-    <form action="/wikiviz" method="post">
-        <div class="form-group1">
+<span id="heading"><header> <h1 id="title1">Wikipedia Clicks & Hierarchies</h1> </header>
+    <div id="search-bar">
+    <form action="/wikiviz" method="post" id="search-bar1">
+        <div class="form-group1" >
             {{ form.csrf }}
 
             <!-- <div type="search" placeholder="search another page" class="form-control" id="wikipage"> -->
@@ -582,7 +702,17 @@
             <br>
             <br>
         </div>
-    </form>
+        
+        </form>
+    </div>
+    
+    <hr>
+    </span>
+
+<div id="chart"></div>
+
+<div id="side_menu">
+
     <div id="article_list">
         <h3 id="title1"> Article List </h3>
 <!--     {% for result in results_to %}
@@ -591,22 +721,8 @@
     <br>
     {% endfor %} -->
     </div>
-    <div id="wikidiv">
-        <div class="wikipreview">
-            <h4>Political philosophy</h4>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/9/98/Sanzio_01_Plato_Aristotle.jpg"></img>
-            <p><b>Political philosophy</b>, or <b>political theory</b>, is the study of topics such as politics, liberty, justice, property, rights, law, and the enforcement of laws by authority: what they are, why they are needed, what, if anything, makes a government legitimate, what rights and freedoms it should protect and why, what form it should take and why, what the law is, and what duties citizens owe to a legitimate government, if any, and when it may be legitimately overthrown, if ever.</p>
-            <hr>
-        </div>
-
-        <div class="wikipreview">
-            <h4>Individualist anarchism</h4>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Anarchy-symbol.svg"></img>
-            <p><b>Individualist anarchism</b> refers to several traditions of thought within the anarchist movement that emphasize the individual and their will over external determinants such as groups, society, traditions and ideological systems. Individualist anarchism is not a single philosophy but refers to a group of individualistic philosophies that sometimes are in conflict. Benjamin Tucker, a famous 19th century individualist anarchist, held that &quot;if the individual has the right to govern himself, all external government is tyranny&quot;.</p>
-            <hr>
-        </div>
-
-    </div>
+    <div id="wikidiv"></div>
 </div>
+
 
 {% endblock %}

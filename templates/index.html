@@ -34,41 +34,38 @@
 
     });
 
-</script>
+    </script>
     
 {% endblock %} 
 
 {% block content %}
-<div class="container">
-	<div class="row">
-		<div class="col-md-2"> </div>
-			<div class="col-md-8" id="stu"> 
-				<div style="margin-top:17%;">
-					<div style="width: 60%; margin:0 auto; margin-bottom: 5%;">	
-		  				<h1 style="margin-bottom: 5%;" id="title">Wikipedia Clicks & Hierarchies</h1>  
-
-				  			<p>This is our viz explanation.</p> 
-					</div>
-				</div>
-				<div>
-					<div style="width:60%; margin: 0 auto;">
-		  					<form class="form-inline" action="/wikiviz" method="post">
-            					{{ form.csrf }}
-
-		    					<div type="search" class="search-bar" id="wikipage" style="font-size: 120%;">
-		    						{{ form.article }}
-									<button type="submit" class="btn btn-default">Search</button>
-
-		    							<!-- <input type="submit" class="submit-btn" label="Search" id="wikipage" style="font-size: 100%;">  -->
-		    					</div>
-							</form>
-							<p>Link to tutorial coming soon...</p> 
-					</div>      
-		 			
-				</div>
-			</div>
+<div class="container"">
+    <div class="image" style="margin-top: 10%; width: 50%; float: left;">
+        <img style="display: block; margin-left: auto; margin-right: auto; max-height: 50vh;" src="https://imgs.xkcd.com/comics/the_problem_with_wikipedia.png" />
+    </div>
+    <div class="row" style="margin-top: 10%; width: 50%; float: right;">
+	<div id="stu"> 
+	    <div style="margin-top:17%;">
+		<div style="width: 80%; margin:0 auto; margin-bottom: 5%;">	
+		    <h1 style="margin-bottom: 5%;" id="title">WikStream</h1>  
 		</div>
-	</div>
+	    </div>
+            <div>
+                <div style="width:80%; margin: 0 auto;">
+                    <form class="form-inline" action="/wikiviz" method="post">
+                        {{ form.csrf }}
+
+                        <div type="search" class="search-bar" id="wikipage" style="font-size: 120%;">
+                            {{ form.article }}
+                                <button type="submit" class="btn btn-default">Search</button>
+                        </div>
+                    </form>
+                    <p>Link to tutorial coming soon...</p>
+                </div>      
+		 			
+            </div>
+        </div>
+    </div>
 </div>
 
 
