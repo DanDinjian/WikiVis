@@ -66,7 +66,7 @@
 }
 
 #article_list {
-    height: 35%;
+    height: 50%;
     overflow-y: scroll;
 }
 
@@ -79,7 +79,7 @@
 }
 
 #wikidiv {
-    height: 45%;
+    height: 50%;
     overflow-y: scroll;
 }
 
@@ -380,7 +380,7 @@
             line.scrollIntoView();
         }
 
-        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N") + " {border: 3px solid black; background-color: " + color(d.group) + "; transition: background-color 2s}";
         document.body.appendChild(sheet);
 
         // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
@@ -398,7 +398,7 @@
         // console.log(d.title)
 
         var sheet = document.createElement('style')
-        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N") + " { border: 1px solid lightgrey; background-color: " + color(d.group + 1) + "; transition: background-color 1s}";
         document.body.appendChild(sheet);        
 
         // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
@@ -434,8 +434,6 @@
 
         var risk_nodes = mnodes.filter(x => safe_nodes.findIndex(y => y.title == x.title) == -1);
         risk_nodes = get_set_from_nodes(risk_nodes);
-
-//        mlinks.forEach(function(x) { mlinks.forEach(function (y) { console.log(get_source(x) + " vs " + get_source(y)); console.log(get_source(x) == get_source(y))})});
 
         var safe_links = mlinks.filter(x => mnodes.find(y => y.title == get_source(x)).group == selected && mnodes.find(y => y.title == get_target(x)).group == selected);
         var risk_links = mlinks.filter(x => (mnodes.find(y => y.title == get_source(x)).group == selected || mnodes.find(y => y.title == get_target(x)).group == selected) &&
@@ -595,7 +593,7 @@
 
         node.append("circle")
           .attr("r", function(d) { var t = links.find(x => get_source(x) == d.title || get_target(x) == d.title); return radius + (t ? t.value : -radius) })
-          .attr("fill", function(d) {return color(d.group)} )
+          .attr("fill", function(d) {return color(d.group + 1)} )
           .attr("id", function(d) {return d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N").concat("circle")})
           .on("mouseover", hover)
           .on("mouseout", unhover);
