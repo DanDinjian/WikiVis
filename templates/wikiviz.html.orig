@@ -56,12 +56,8 @@
 #side_menu {
     position: fixed;
     width: 25%;
-<<<<<<< HEAD
-    top: 0;
-=======
     overflow-y: scroll;
-    top: 25%;
->>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
+    top: 10%;
     margin-left: 5%;
     border-left: 1px dashed;
     /* vertical-align: 0%; */
@@ -70,8 +66,12 @@
 }
 
 #article_list {
-    height: 35%;
+    height: 50%;
     overflow-y: scroll;
+}
+
+.list-group-item {
+    cursor: pointer;
 }
 
 #side_menu form {
@@ -79,7 +79,7 @@
 }
 
 #wikidiv {
-    height: 45%;
+    height: 50%;
     overflow-y: scroll;
 }
 
@@ -218,6 +218,7 @@
     }
 
     function add_new_article(innodes, inlinks, article, nnum, callback) {
+
         article = article.replace(' ', '_');
         var promises = [new $.Deferred(), new $.Deferred(), new $.Deferred()];
         var results = [];
@@ -236,11 +237,12 @@
             "error": closure(promises[2], function(promise, resp) {
                 article_results = {"displaytitle": "No preview available", "extract_html": "", "originalimage": {"source": ""}};
                 promise.resolve();
-            })
+            }),
+            "timeout": 10000
         });
 
         $.when.apply($, promises).done(function () {
-            var new_article_node = {"title": article, "group": 1, "weight": 0, "summary": article_results };
+            var new_article_node = {"title": article, "group": selected, "weight": 0, "summary": article_results };
             var ngraph = generate_article_graph_data(article, results, [new_article_node], nnum, true);
 
             var new_nodes = ngraph[0];
@@ -268,12 +270,13 @@
                     "error": closure([new_nodes[i].title, lpromises[(3*i)+2]], function(info, resp) {
                         larresults.push({"title": info[0], "summary": {"displaytitle": "No preview available", "extract_html": "", "originalimage": {"source": ""}}});
                         info[1].resolve();
-                    })
+                    }),
+                    "timeout": 10000
                });
             }
 
             $.when.apply($, lpromises).done(function () {
-                var lgraph = generate_article_graph_data(article, lresults, new_nodes.concat(innodes.filter(x => x.group != 1)), 0, false);
+                var lgraph = generate_article_graph_data(article, lresults, new_nodes.concat(innodes.filter(x => x.group != selected)), 0, false);
 
                 var links = new_links.concat(lgraph[1]).concat(inlinks);
                 var nodes = new_nodes.concat(innodes);
@@ -287,12 +290,8 @@
                 if (og_node == -1) {
                     nodes.push(new_article_node);
                 } else {
-                    nodes[og_node].group = 1;
+                    nodes[og_node].group = selected;
                 }
-
-                console.log("RESULTS")
-                console.log(nodes)
-                console.log(links)
 
                 callback(nodes, get_set_from_links(links))
 
@@ -316,7 +315,7 @@
             if (should_nodes) {
                 for (var j = 0; j < data.length; j++) {
                     nnodes = nnodes.concat(
-                        data[j].result.map(x => ({"title": x.name, "group": 0, "weight": x.num_refs}))
+                        data[j].result.map(x => ({"title": x.name, "group": unselected, "weight": x.num_refs}))
                     );
                 }
             }
@@ -337,6 +336,9 @@
                 "success": function(n) {
                     results.push({"result": n, "is_to": true, "name": article});
                     promise_to.resolve();
+                },
+                "error": function() {
+                    promise_to.resolve();
                 }
             });
             $.ajax({
@@ -344,6 +346,9 @@
                 "success": function(n) {
                     results.push({"result": n, "is_to": false, "name": article});
                     promise_from.resolve();
+                },
+                "error": function() {
+                    promise_to.resolve();
                 }
             });
         }
@@ -353,6 +358,15 @@
         return (a || b) && !(a && b);
     }
 
+    function show_preview (d) {
+        var dnode = d3.select("#".concat(d.replace(/\W+/g, "_").concat("circle")));
+        d3.select("#wikidiv").selectAll("*").remove();
+        var preview = d3.select("#wikidiv").append("div").attr("class", "wikipreview");
+        preview.append("h4").html(dnode.datum().summary.displaytitle);
+        preview.append("img").attr("src", dnode.datum().summary.originalimage.source);
+        preview.append("p").html(dnode.datum().summary.extract_html);
+    }
+
     function hover(d){
         // console.log("HOVER")
         // console.log(d)
@@ -360,43 +374,36 @@
 
         //document.getElementById(d.title.replace(/\(|\)/g, "_")).style("fill", "green")
 
-        var sheet = document.createElement('style')
 <<<<<<< HEAD
         var line = document.getElementById(d.title.replace(/\W+/g, "_"));
 =======
-        console.log("IT is:" + d.title.replace(/\(|\)/g, "_"))
-        var line = document.getElementById(d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_"));
-        console.log(line)
->>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
+        var sheet = document.createElement('style')
+        var line = document.getElementById(d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N"));
+>>>>>>> 6dc36acf2ca5f715a6524661773a472877204afe
         if (!isElementInViewport(line)) {
             line.scrollIntoView();
         }
 
 <<<<<<< HEAD
-        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
+        var sheet = document.createElement('style')
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_") + " {border: 3px solid black; background-color: " + color(d.group) + "; transition: background-color 0.25s}";
 =======
-        sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
->>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N") + " {border: 3px solid black; background-color: green; transition: background-color 2s}";
+>>>>>>> 6dc36acf2ca5f715a6524661773a472877204afe
         document.body.appendChild(sheet);
 
         // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
         // console.log("next is")
         // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
 <<<<<<< HEAD
-        var dnode = d3.select("#".concat(d.title.replace(/\W+/g, "_").concat("circle")));
-        dnode
+        d3.select("#".concat(d.title.replace(/\W+/g, "_").concat("circle")))
 =======
-        d3.select("#".concat(d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_").concat("circle")))
->>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
+        var dnode = d3.select("#".concat(d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N").concat("circle")));
+        dnode
+>>>>>>> 6dc36acf2ca5f715a6524661773a472877204afe
             .transition()
             .duration(250)
-            .style("fill", "green");
-
-        d3.select("#wikidiv").selectAll("*").remove();
-        var preview = d3.select("#wikidiv").append("div").attr("class", "wikipreview");
-        preview.append("h4").html(dnode.datum().summary.displaytitle);
-        preview.append("img").attr("src", dnode.datum().summary.originalimage.source);
-        preview.append("p").html(dnode.datum().summary.extract_html);
+            .style("fill", color(d.group));
     }
     function unhover(d){
         // console.log("HOVER")
@@ -405,51 +412,63 @@
 
         var sheet = document.createElement('style')
 <<<<<<< HEAD
-        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_") + " { border: 1px solid lightgrey; background-color: " + color(d.group + 1) + "; transition: background-color 1s}";
 =======
-        sheet.innerHTML = "#" + d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
->>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
+        sheet.innerHTML = "#" + d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N") + " { border: 1px solid lightgrey; background-color: white; transition: background-color 1s}";
+>>>>>>> 6dc36acf2ca5f715a6524661773a472877204afe
         document.body.appendChild(sheet);        
 
         // console.log(document.getElementById(d.title.replace(/\(|\)/g, "_")))
         // console.log("next is")
         // console.log("#".concat(d.title.replace(/\(|\)/g, "_")))
-<<<<<<< HEAD
-        d3.select("#".concat(d.title.replace(/\W+/g, "_").concat("circle")))
-=======
-        d3.select("#".concat(d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_").concat("circle")))
->>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
+        d3.select("#".concat(d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N").concat("circle")))
             .transition()
             .duration(250)
-            .style("fill", color(d.group))
+            .style("fill", color(d.group + 1));
     }
+
     function get_source(weird) {
-        return weird.source.title || weird.source;
+        if (typeof(weird.source) == 'string') {
+            return weird.source;
+        } else {
+            return weird.source.title;
+        }
     }
 
     function get_target(weird) {
-        return weird.target.title || weird.target;
+        if (typeof(weird.target) == 'string') {
+            return weird.target;
+        } else {
+            return weird.target.title;
+        }
     }
 
     function trim_graph(mnodes, mlinks, ncn) {
         mlinks = get_set_from_links(mlinks);
 
-        var safe_nodes = mnodes.filter(x => x.group == 1);
+        var safe_nodes = mnodes.filter(x => x.group == selected);
         safe_nodes = get_set_from_nodes(safe_nodes);
 
         var risk_nodes = mnodes.filter(x => safe_nodes.findIndex(y => y.title == x.title) == -1);
         risk_nodes = get_set_from_nodes(risk_nodes);
 
-        var safe_links = mlinks.filter(x => mnodes.find(y => y.title == get_source(x)).group == 1 && mnodes.find(y => y.title == get_target(x)).group == 1);
-        var risk_links = mlinks.filter(x => xor(mnodes.find(y => y.title == get_source(x)).group == 1, mnodes.find(y => y.title == get_target(x)).group == 1));
-        var intr_links = mlinks.filter(x => !(mnodes.find(y => y.title == get_source(x)).group == 1 || mnodes.find(y => y.title == get_target(x)).group == 1));
+//        mlinks.forEach(function(x) { mlinks.forEach(function (y) { console.log(get_source(x) + " vs " + get_source(y)); console.log(get_source(x) == get_source(y))})});
+
+        var safe_links = mlinks.filter(x => mnodes.find(y => y.title == get_source(x)).group == selected && mnodes.find(y => y.title == get_target(x)).group == selected);
+        var risk_links = mlinks.filter(x => (mnodes.find(y => y.title == get_source(x)).group == selected || mnodes.find(y => y.title == get_target(x)).group == selected) &&
+                                           !(mnodes.find(y => y.title == get_source(x)).group == selected && mnodes.find(y => y.title == get_target(x)).group == selected));
+        var intr_links = mlinks.filter(x => !(mnodes.find(y => y.title == get_source(x)).group == selected || mnodes.find(y => y.title == get_target(x)).group == selected));
 
         var top_risk_links = risk_links.sort((a,b) => b.value - a.value).slice(0, ncn);
+
         var top_risk_nodes = risk_nodes.filter(x => top_risk_links.findIndex(y => x.title == get_source(y)) != -1 || top_risk_links.findIndex(y => x.title == get_target(y)) != -1);
 
         var valid_intr_links = intr_links.filter(x => top_risk_nodes.findIndex(y => y.title == get_source(x)) != -1 && top_risk_nodes.findIndex(y => y.title == get_target(x)) != -1);
 
         var top_intr_links = valid_intr_links.sort((a,b) => b.value - a.value).slice(0, ncn);
+
+        console.log(safe_nodes.concat(top_risk_nodes))
+        console.log(safe_links.concat(top_risk_links).concat(top_intr_links))
 
         return [safe_nodes.concat(top_risk_nodes), safe_links.concat(top_risk_links).concat(top_intr_links)];
     }
@@ -503,7 +522,9 @@
     var margin = {top: 20, right: 20, bottom: 20, left: 10},
           width = window.innerWidth*.8 - margin.left - margin.right,
           height = window.innerHeight - margin.top - margin.bottom,
-          radius = 5;
+          radius = 5,
+          selected = 2,
+          unselected = 0;
 
     var svg = d3.select("#chart").append("svg")
         .attr("width", width)
@@ -512,7 +533,12 @@
 
     var list = d3.select("#article_list")
 
-    var color = d3.scaleOrdinal(d3.schemeCategory20);
+    var color = function (c) {
+        if (c == 0) return "#2d81ef";
+        else if (c == 1) return "#9ec8ff";
+        else if (c == 2) return "#36af0e";
+        else if (c == 3) return "#b8ffa0";
+    }
 
     var loadicon = loader({"width": width, "height": height, "radius": Math.min(width, height) / 4, "container": "#container", "id": "loader"});
     loadicon();
@@ -579,20 +605,24 @@
                 .on("start", dragstarted)
                 .on("drag", dragged)
                 .on("end", dragended))
-            .attr("class", "fnode");
+            .attr("class", "fnode")
+            .on("click", function(d) { show_preview(d.title); });
             // replace(/\(|\)/g, "_")
             // .attr("id", function(d) {return d.title.replace(/\(|\)/g, "_")});
 
         node.append("circle")
           .attr("r", function(d) { var t = links.find(x => get_source(x) == d.title || get_target(x) == d.title); return radius + (t ? t.value : -radius) })
-          .attr("fill", function(d) {return color(d.group)} )
 <<<<<<< HEAD
+          .attr("fill", function(d) {return color(d.group + 1)} )
           .attr("id", function(d) {return d.title.replace(/\W+/g, "_").concat("circle")})
+          .on("mouseover", function(d) { d3.select(this).style("cursor", "pointer"); return hover(d) })
+          .on("mouseout", function(d) { d3.select(this).style("cursor", "default"); return unhover(d) });
 =======
-          .attr("id", function(d) {return d.title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_").concat("circle")})
->>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
+          .attr("fill", function(d) {return color(d.group)} )
+          .attr("id", function(d) {return d.title.replace(/\W+/g, "_").replace(/[0-9]/g, "N").concat("circle")})
           .on("mouseover", hover)
           .on("mouseout", unhover);
+>>>>>>> 6dc36acf2ca5f715a6524661773a472877204afe
 
         link = link.exit().remove();
         link = link.data(links).enter().append("line")
@@ -606,34 +636,23 @@
 
         simulation.alpha(1).restart();
 
-/*
-        // document.getElementById('article_list').innerHTML = " <strong> Article List <strong> ";
-        console.log(document.getElementsByClassName("fnode").length)
-        document.getElementById('article_list').innerHTML = "<ul class=\"list-group\">"
-        // document.getElementsByClassName("fnode").length
-        for (var i = 0; i < nodes.length; i++){
-            document.getElementById('article_list').innerHTML += "<li class=\"list-group-item\" id=\"" + mygraph.nodes[i].title.replace(/\W+/g, "_") + "\">" + mygraph.nodes[i].title.replace(/_/g, ' ') + "</li>";
-    }
-        document.getElementById('article_list').innerHTML += "</ul> <br>"
-*/
         var alist = d3.select("#article_list");
         alist.selectAll("*").remove();
         var listelem = alist.append("ul")
             .attr("class", "list-group");
 
-        var sortednodes = nodes.sort((a,b) => a.title.localeCompare(b.title));
+        var safe_nodes = nodes.filter(x => x.group == selected);
+        var risk_nodes = nodes.filter(x => x.group != selected);
+        var sortednodes = safe_nodes.sort((a,b) => a.title.localeCompare(b.title)).concat(risk_nodes.sort((a,b) => a.title.localeCompare(b.title)));
 
         for (var i = 0; i < sortednodes.length; i++) {
             listelem.append("li")
                 .attr("class", "list-group-item")
-<<<<<<< HEAD
-                .attr("id", sortednodes[i].title.replace(/\W+/g, "_"))
-=======
-                .attr("id", sortednodes[i].title.replace(/\(|\)/g, "_").replace(/[, '"]+/g, "_"))
->>>>>>> bc7eae851fa023fca7f81497845a59a753e058a2
+                .attr("id", sortednodes[i].title.replace(/\W+/g, "_").replace(/[0-9]/g, "N"))
                 .text(sortednodes[i].title.replace(/_/g, ' '))
                 .on("mouseover", closure(sortednodes[i], function(n) { return hover(n) }))
                 .on("mouseout", closure(sortednodes[i], function(n) { return unhover(n) }))
+                .on("click", closure(sortednodes[i], function(n) { show_preview(n.title) }))
                 .on('contextmenu', closure(sortednodes[i], function(d) {
                     d3.event.preventDefault();
                     num_core_nodes += 1;
@@ -642,18 +661,26 @@
                     spinner.moveToFront();
                     spinner.style("opacity", 1);
                 }));
+            var sheet = document.createElement('style')
+            sheet.innerHTML = "#" + sortednodes[i].title.replace(/\W+/g, "_") + " {border: 1px solid lightgrey; background-color: " + color(sortednodes[i].group + 1) + "; transition: background-color 2s}";
+            document.body.appendChild(sheet);
+
        }
+    }
+
+    function border(margin, border, value) {
+        return Math.max(margin, Math.min(border - margin, value));
     }
 
     function ticked() {
        node
-            .attr("transform", function(d) { return "translate(" + Math.max(radius, Math.min(width - radius, d.x)) + "," + Math.max(radius, Math.min(height - radius, d.y)) + ")"; });
+            .attr("transform", function(d) { return "translate(" + border(radius, width, d.x) + "," + border(radius, height, d.y) + ")"; });
 
        link
-            .attr("x1", function(d) { return d.source.x; })
-            .attr("y1", function(d) { return d.source.y; })
-            .attr("x2", function(d) { return d.target.x; })
-            .attr("y2", function(d) { return d.target.y; });
+            .attr("x1", function(d) { return border(0, width, d.source.x); })
+            .attr("y1", function(d) { return border(0, height, d.source.y); })
+            .attr("x2", function(d) { return border(0, width, d.target.x); })
+            .attr("y2", function(d) { return border(0, height, d.target.y); });
 
       }
 
@@ -702,7 +729,7 @@
             <br>
             <br>
         </div>
-        
+
         </form>
     </div>
     
